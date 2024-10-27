@@ -10,7 +10,7 @@ aoc_now = datetime.datetime.now(tz=AOC_TZ)
 day = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.day
 year = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.year
 puzzle = Puzzle(year=year, day=day)
-print(f"\nInput for {year} Day {day}:\n{puzzle.input_data}\n")
+print(f"\nInput for {year} Day {day}:\n---------------------\n{puzzle.input_data}\n")
 
 params = dict(
     year = year,
@@ -26,7 +26,9 @@ if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
     subprocess.run(["git", "commit", "-am", "WIP"], check=True)
 
 subprocess.run(["git", "fetch"], check=True)
-subprocess.run(["git", "checkout", "-b", f"{year}/{day}", "--no-track", "origin/master"], check=True)
+# if master is at/after origin/master, use master, otherwise use origin/master
+start_ref ="master" if subprocess.run(["git", "merge-base", "--is-ancestor", "origin/master", "master"]).returncode == 0 else "origin/master"
+subprocess.run(["git", "checkout", "-b", f"{year}/{day}", "--no-track", start_ref], check=True)
 
 year_filename = f"./src/{params['yyear']}.rs"
 with open(year_filename, "a", encoding="utf-8") as f:

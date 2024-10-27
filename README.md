@@ -8,7 +8,7 @@ https://github.com/barneyb/aoc2017 has an index, if you want my details.
 
 ## Architecture
 
-The main solvers are implenented as Rust modules, one per day. They leverage
+The main solvers are implemented as Rust modules, one per day. They leverage
 [advent-of-code-data](https://github.com/wimglenn/advent-of-code-data), which
 is a python library for interacting with the [adventofcode.com](https://adventofcode.com)
 API. Retrieving input comes out of the box; there's a small wrapper script `src`

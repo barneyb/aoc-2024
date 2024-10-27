@@ -9,6 +9,7 @@ use std::{io, thread};
 
 pub mod aocd;
 pub mod y2015;
+pub mod y2016;
 
 type Ans = Box<dyn Display + Send>;
 

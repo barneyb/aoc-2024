@@ -1,0 +1,12 @@
+[package]
+name = "aoc-2024"
+version = "0.1.0"
+authors = ["Barney Boisvert <bboisvert@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+console = "0.15.8"
+regex = "1.11.1"
+
+[lib]
+name = "aoc"

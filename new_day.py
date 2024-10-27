@@ -20,9 +20,19 @@ params = dict(
 )
 
 print(params)
-with open(f"./src/{params['yyear']}.rs", "a", encoding="utf-8") as f:
+
+if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
+    subprocess.run(["git", "commit", "-am", "WIP"], check=True)
+
+subprocess.run(["git", "fetch"], check=True)
+subprocess.run(["git", "checkout", "-b", f"{year}/{day}", "--no-track", "origin/master"], check=True)
+
+year_filename = f"./src/{params['yyear']}.rs"
+with open(year_filename, "a", encoding="utf-8") as f:
     f.write(f"mod {params['name']}_{params['zday']};\n")
-module_file_name=f"./src/y{year}/{params['name']}_{params['day']}.rs"
+
+subprocess.run(["mkdir", "-p", f"./src/{params['yyear']}"], check=True)
+module_file_name = f"./src/{params['yyear']}/{params['name']}_{params['day']}.rs"
 with open(module_file_name, "w", encoding="utf-8") as f:
     f.write(Template("""
 pub fn part_one(input: &str) -> usize {
@@ -58,4 +68,5 @@ mod test {
     // }
 }
 """).substitute(params))
-subprocess.run(["git", "add", module_file_name])
+
+subprocess.run(["git", "add", year_filename, module_file_name], check=True)

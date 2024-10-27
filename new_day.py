@@ -10,6 +10,7 @@ aoc_now = datetime.datetime.now(tz=AOC_TZ)
 day = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.day
 year = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.year
 puzzle = Puzzle(year=year, day=day)
+print(f"\nInput for {year} Day {day}:\n{puzzle.input_data}\n")
 
 params = dict(
     year = year,
@@ -32,10 +33,9 @@ with open(year_filename, "a", encoding="utf-8") as f:
     f.write(f"mod {params['name']}_{params['zday']};\n")
 
 subprocess.run(["mkdir", "-p", f"./src/{params['yyear']}"], check=True)
-module_file_name = f"./src/{params['yyear']}/{params['name']}_{params['day']}.rs"
+module_file_name = f"./src/{params['yyear']}/{params['name']}_{params['zday']}.rs"
 with open(module_file_name, "w", encoding="utf-8") as f:
-    f.write(Template("""
-pub fn part_one(input: &str) -> usize {
+    f.write(Template("""pub fn part_one(input: &str) -> usize {
     input.len()
 }
 
@@ -70,3 +70,4 @@ mod test {
 """).substitute(params))
 
 subprocess.run(["git", "add", year_filename, module_file_name], check=True)
+subprocess.run(["idea", module_file_name])

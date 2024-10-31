@@ -64,7 +64,7 @@ mod test {
     //     use crate::{with_input, Part};
     //     with_input($year, $day, |input, tx| {
     //         tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-    // //         tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+    //         // tx.send(Part::B(Box::new(part_two(input)))).unwrap();
     //     })
     //     .unwrap();
     // }

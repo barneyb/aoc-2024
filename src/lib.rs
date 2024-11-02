@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use std::{io, thread};
 
 pub mod aocd;
+pub mod timing;
 pub mod y2015;
 pub mod y2016;
 

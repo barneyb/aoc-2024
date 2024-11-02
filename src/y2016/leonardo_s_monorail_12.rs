@@ -114,9 +114,13 @@ fn parse(input: &str) -> Vec<ISA> {
     input.trim().lines().map(ISA::from).collect()
 }
 
-// pub fn part_two(input: &str) -> usize {
-//     input.len()
-// }
+pub fn part_two(input: &str) -> isize {
+    let program = parse(input);
+    let mut cpu = Cpu::default();
+    cpu.set(&Val::C, 1);
+    cpu.execute(&program);
+    cpu.get(&Val::A)
+}
 
 #[cfg(test)]
 mod test {
@@ -163,7 +167,7 @@ dec a"#;
         use crate::{with_input, Part};
         with_input(2016, 12, |input, tx| {
             tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-            // tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+            tx.send(Part::B(Box::new(part_two(input)))).unwrap();
         })
         .unwrap();
     }

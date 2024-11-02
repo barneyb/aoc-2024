@@ -11,17 +11,67 @@ aoc_now = datetime.datetime.now(tz=AOC_TZ)
 day = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.day
 year = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.year
 puzzle = Puzzle(year=year, day=day)
-print(f"\nInput for {year} Day {day}:\n---------------------\n{puzzle.input_data}\n")
+print(f"{year} Day {day}: {puzzle.title}")
+
+example_tests = ""
+has_part_two = False
+for i, e in enumerate(puzzle.examples, start=1):
+    example_tests += f"""
+    const EXAMPLE_{i}: &str = r#"{e.input_data}"#;
+    """
+for i, e in enumerate(puzzle.examples, start=1):
+    asserts = ""
+    if e.extra:
+        asserts = f"""\*
+         {e.extra}
+         */"""
+    if e.answer_a:
+        asserts += f"""
+        assert_eq!(r"{e.answer_a}", part_one(EXAMPLE_{i}).to_string());"""
+    if e.answer_b:
+        has_part_two = True
+        asserts += f"""
+        assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
+    example_tests += f"""
+    #[test]
+    fn example_{i}() {{{asserts}
+    }}
+    """
+    print(f"Example {i}")
+    print("-" * 80)
+    print(e.input_data)
+    print("-" * 80)
+    print(f"Part A: {e.answer_a or '-'}")
+    print(f"Part B: {e.answer_b or '-'}")
+    print("-" * 80)
+    print()
+
+print("-" * 80)
+print(f"{puzzle.input_data}")
+print("-" * 80)
+print()
 
 yyear = f"y{year}"
 zday = str(day) if day >= 10 else f"0{day}"
 name = re.sub("[^a-z0-9]+", "_", puzzle.title.lower())
+p2p = "" if has_part_two else "// "
 params = dict(
     year = year,
     yyear = yyear,
     day = day,
     zday = zday,
     name = name,
+    example_tests = example_tests or f"""
+    #[test]
+    fn test_part_one() {{
+        assert_eq!(3, part_one("AoC"));
+    }}
+
+    {p2p}#[test]
+    {p2p}fn test_part_two() {{
+    {p2p}    assert_eq!(12, part_two("adventofcode"));
+    {p2p}}}""",
+    p2p = p2p,
 )
 
 print(params)
@@ -47,30 +97,21 @@ with open(module_filename, "w", encoding="utf-8") as f:
     input.len()
 }
 
-// pub fn part_two(input: &str) -> usize {
-//     input.len()
-// }
+${p2p}pub fn part_two(input: &str) -> usize {
+${p2p}    input.len()
+${p2p}}
 
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn test_part_one() {
-        assert_eq!(3, part_one("AoC"));
-    }
-
-    // #[test]
-    // fn test_part_two() {
-    //     assert_eq!(12, part_two("adventofcode"));
-    // }
+$example_tests
 
     // #[test]
     // fn test_real_input() {
     //     use crate::{with_input, Part};
     //     with_input($year, $day, |input, tx| {
     //         tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-    //         // tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+    //         ${p2p}tx.send(Part::B(Box::new(part_two(input)))).unwrap();
     //     })
     //     .unwrap();
     // }

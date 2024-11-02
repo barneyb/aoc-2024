@@ -8,10 +8,14 @@ from zoneinfo import ZoneInfo
 from aocd.models import Puzzle
 AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
-day = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.day
-year = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.year
+year = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.year
+day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
+if year < day:
+    (year, day) = (day, year)
 puzzle = Puzzle(year=year, day=day)
+print()
 print(f"{year} Day {day}: {puzzle.title}")
+print()
 
 example_tests = ""
 has_part_two = False
@@ -46,6 +50,7 @@ for i, e in enumerate(puzzle.examples, start=1):
     print("-" * 80)
     print()
 
+print("Today's Input:")
 print("-" * 80)
 print(f"{puzzle.input_data}")
 print("-" * 80)
@@ -133,6 +138,8 @@ fn main() -> Result<(), Error> {
 """).substitute(params))
 
 subprocess.run(["cargo", "run", "--bin", name], check=True)
-subprocess.run(["git", "add", year_filename, module_filename, binary_filename], check=True)
+subprocess.run(["git", "add", module_filename, binary_filename], check=True)
+day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
+subprocess.run(["git", "commit", "-am", f"skeleton for {day_spec}: {puzzle.title}"], check=True)
 subprocess.run(["idea", binary_filename])
 subprocess.run(["idea", module_filename])

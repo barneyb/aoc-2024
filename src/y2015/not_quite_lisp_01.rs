@@ -56,8 +56,8 @@ mod test {
     fn test_real_input() {
         use crate::{with_input, Part};
         with_input(2015, 1, |input, tx| {
-            tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-            tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+            tx.send(Part::A(part_one(input).to_string())).unwrap();
+            tx.send(Part::B(part_two(input).to_string())).unwrap();
         })
         .unwrap();
     }
@@ -67,8 +67,8 @@ mod test {
         use crate::{with_input, Part};
         with_input(2015, 1, |input, tx| {
             let (a, b) = both_parts(input);
-            tx.send(Part::A(Box::new(a))).unwrap();
-            tx.send(Part::B(Box::new(b))).unwrap();
+            tx.send(Part::A(a.to_string())).unwrap();
+            tx.send(Part::B(b.to_string())).unwrap();
         })
         .unwrap();
     }

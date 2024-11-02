@@ -166,8 +166,8 @@ dec a"#;
     fn test_real_input() {
         use crate::{with_input, Part};
         with_input(2016, 12, |input, tx| {
-            tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-            tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+            tx.send(Part::A(part_one(input).to_string())).unwrap();
+            tx.send(Part::B(part_two(input).to_string())).unwrap();
         })
         .unwrap();
     }

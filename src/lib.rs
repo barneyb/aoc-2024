@@ -1,5 +1,4 @@
-use console::Style;
-use std::fmt::{Display, Formatter};
+use console::{style, Style};
 use std::io::Error;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
@@ -20,23 +19,11 @@ pub mod y2022;
 pub mod y2023;
 pub mod y2024;
 
-type Ans = Box<dyn Display + Send>;
-
+#[derive(Debug)]
 pub enum Part {
-    A(Ans),
-    B(Ans),
-    Other(Ans),
-}
-
-impl Display for Part {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let (p, a) = match self {
-            Part::A(a) => ("A", a),
-            Part::B(a) => ("B", a),
-            Part::Other(a) => ("Other", a),
-        };
-        write!(f, "{p}[{a}]")
-    }
+    A(String),
+    B(String),
+    Other(String),
 }
 
 pub fn with_input<S>(year: u32, day: u8, work: S) -> Result<(), Error>
@@ -111,13 +98,10 @@ fn listen_for_answers(
 fn submit(year: u32, day: u8, part: &Part) -> io::Result<bool> {
     if let Part::A(_) | Part::B(_) = part {
         if aocd::submit_answer(year, day, part)? {
-            println!(
-                "{}",
-                Style::new().green().apply_to(format!("Verified {part}"))
-            );
+            println!("{}", style(format!("Verified {part:?}")).green(),);
             Ok(true)
         } else {
-            println!("{}", Style::new().red().apply_to(format!("Failed {part}")));
+            println!("{}", style(format!("Failed {part:?}")).red());
             Ok(false)
         }
     } else {

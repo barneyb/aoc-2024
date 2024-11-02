@@ -1,36 +1,7 @@
+use crate::timing::Timing;
 use anyhow::Result;
-use std::cell::Cell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Write;
-use std::time::{Duration, Instant};
-
-#[derive(Debug, Default)]
-struct Timing {
-    count: Cell<usize>,
-    nanos: Cell<Duration>,
-    start: Cell<Option<Instant>>,
-}
-
-impl Timing {
-    fn enter(&self) {
-        if let Some(_) = self.start.replace(Some(Instant::now())) {
-            panic!("A timed block is already open for this timing?")
-        }
-    }
-
-    fn exit(&self) {
-        if let Some(i) = self.start.replace(None) {
-            self.nanos.set(self.nanos.get() + i.elapsed());
-            self.count.set(self.count.get() + 1);
-        } else {
-            panic!("A timed block is not open for this timing?")
-        }
-    }
-
-    fn total_time(&self) -> Duration {
-        self.nanos.get()
-    }
-}
 
 struct Solver {
     elements: Vec<char>,
@@ -40,7 +11,6 @@ struct Solver {
     bit_size: u8,
     elevator_inc: usize,
     step_inc: usize,
-    t_solve: Timing,
     t_is_safe: Timing,
     t_build_neighbors: Timing,
 }
@@ -65,17 +35,17 @@ impl Solver {
             bit_size,
             elevator_inc: 1 << (bit_size - 2),
             step_inc: 1 << bit_size,
-            t_solve: Timing::default(),
             t_is_safe: Timing::default(),
             t_build_neighbors: Timing::default(),
         }
     }
 
     fn solve(&self, initial_state: usize) -> usize {
-        self.t_solve.enter();
-        if let Ok(s) = self.draw(initial_state) {
-            println!("{s}");
-        }
+        let t_solve = Timing::default();
+        t_solve.enter();
+        // if let Ok(s) = self.draw(initial_state) {
+        //     println!("{s}");
+        // }
         let mut queue = VecDeque::from([initial_state]);
         let mut enqueued = queue.len();
         let mut visited = HashSet::new();
@@ -85,32 +55,36 @@ impl Solver {
                 continue;
             }
             if self.is_goal(s) {
-                self.t_solve.exit();
-                println!("{}", self.draw(s).unwrap());
+                t_solve.exit();
+                // println!("{}", self.draw(s).unwrap());
                 println!("Enqueued {enqueued} states");
                 println!("Checked  {} distinct states", visited.len());
                 println!(
-                    "{:9} {:>12?} {:?}",
+                    "{:9} {:>13?} {:?}",
                     "solve",
-                    self.t_solve.total_time() - self.t_build_neighbors.total_time(),
-                    self.t_solve
+                    t_solve.total_time() - self.t_build_neighbors.total_time(),
+                    t_solve
                 );
-                println!(
-                    "{:9} {:>12?} {:?}",
-                    "neighbors",
-                    self.t_build_neighbors.total_time() - self.t_is_safe.total_time(),
-                    self.t_build_neighbors
-                );
-                println!(
-                    "{:9} {:>12?} {:?}",
-                    "is_safe",
-                    self.t_is_safe.total_time(),
-                    self.t_is_safe
-                );
+                if self.t_build_neighbors.invoked() {
+                    println!(
+                        "{:9} {:>13?} {:?}",
+                        "neighbors",
+                        self.t_build_neighbors.total_time() - self.t_is_safe.total_time(),
+                        self.t_build_neighbors
+                    );
+                }
+                if self.t_is_safe.invoked() {
+                    println!(
+                        "{:9} {:>13?} {:?}",
+                        "is_safe",
+                        self.t_is_safe.total_time(),
+                        self.t_is_safe
+                    );
+                }
                 return self.step_count(s);
             }
             neighbors.clear();
-            self.build_neighbors(s, &mut neighbors);
+            self.build_neighbors(s + self.step_inc, &mut neighbors);
             for &n in neighbors.iter() {
                 queue.push_back(n);
                 enqueued += 1;
@@ -134,92 +108,77 @@ impl Solver {
     }
 
     fn is_safe(&self, state: usize) -> bool {
-        self.t_is_safe.enter();
-        // For each element, record whether the generator is present and whether
-        // the microchip is alone.
-        let mut val = state;
-        let mut lone_chips = [false, false, false, false];
-        let mut generators = [false, false, false, false];
-        for _ in 0..self.element_count {
-            let m = val & 0b11;
-            val >>= 2;
-            let g = val & 0b11;
-            val >>= 2;
-            if m == g {
-                // same floor; microchip is safe
-                generators[g] = true;
-            } else if generators[m] {
-                // alone w/ another element's generator
-                self.t_is_safe.exit();
-                return false;
-            } else {
-                generators[g] = true;
-                lone_chips[m] = true;
+        self.t_is_safe.apply(|| {
+            // For each element, record what floor its generator is on, and if
+            // it's microchip is detached, what floor it's on.
+            let mut val = state;
+            let mut loose_chips = [false; 4];
+            let mut generators = [false; 4];
+            for _ in 0..self.element_count {
+                let m = val & 0b11;
+                val >>= 2;
+                let g = val & 0b11;
+                val >>= 2;
+                if loose_chips[g] {
+                    // loose chip w/ this generator
+                    return false;
+                }
+                if m == g {
+                    // same floor; microchip is safe
+                    generators[g] = true;
+                } else if generators[m] {
+                    // alone w/ another element's generator
+                    return false;
+                } else {
+                    generators[g] = true;
+                    loose_chips[m] = true;
+                }
             }
-        }
-        for i in 0..4 {
-            if lone_chips[i] && generators[i] {
-                self.t_is_safe.exit();
-                return false;
-            }
-        }
-        self.t_is_safe.exit();
-        true
+            true
+        })
     }
 
     fn build_neighbors(&self, state: usize, buffer: &mut Vec<usize>) {
-        self.t_build_neighbors.enter();
-        let floor = self.current_floor(state);
-        let move_item = |state, i, add: bool| {
-            let delta = 1_usize << i * 2;
-            if add {
-                state + delta
-            } else {
-                state - delta
-            } // move item
-        };
-        let mut add_next = |next, add: bool| {
-            if self.is_safe(next) {
-                let mut next = if add {
-                    next + self.elevator_inc
-                } else {
-                    next - self.elevator_inc
-                }; // move elevator
-                next += self.step_inc; // take step
-                buffer.push(next)
-            }
-        };
-        let mut first = state;
-        for i in 0..self.item_count {
-            if first & 0b11 == floor {
-                let mut up = None;
-                let mut down = None;
-                if floor < 0b11 {
-                    let n = move_item(state, i, true);
-                    add_next(n, true);
-                    up = Some(n);
+        self.t_build_neighbors.run(|| {
+            let floor = self.current_floor(state);
+            let mut add_next = |next| {
+                if self.is_safe(next) {
+                    buffer.push(next)
                 }
-                if floor > 0 {
-                    let n = move_item(state, i, false);
-                    add_next(n, false);
-                    down = Some(n);
-                }
-                let mut second = first;
-                for j in (i + 1)..self.item_count {
-                    second >>= 2;
-                    if second & 0b11 == floor {
-                        if let Some(n) = up {
-                            add_next(move_item(n, j, true), true);
-                        }
-                        if let Some(n) = down {
-                            add_next(move_item(n, j, false), false);
+            };
+            let mut first = state;
+            for i in 0..self.item_count {
+                if first & 0b11 == floor {
+                    let mut up = None;
+                    let mut down = None;
+                    let delta = (1 << i * 2) + self.elevator_inc;
+                    if floor < 0b11 {
+                        let n = state + delta;
+                        add_next(n);
+                        up = Some(n);
+                    }
+                    if floor > 0 {
+                        let n = state - delta;
+                        add_next(n);
+                        down = Some(n);
+                    }
+                    let mut second = first;
+                    for j in (i + 1)..self.item_count {
+                        second >>= 2;
+                        if second & 0b11 == floor {
+                            let delta = 1 << j * 2;
+                            if let Some(n) = up {
+                                add_next(n + delta);
+                            }
+                            if let Some(n) = down {
+                                add_next(n - delta);
+                            }
                         }
                     }
                 }
+                first >>= 2;
             }
-            first >>= 2;
-        }
-        self.t_build_neighbors.exit();
+        });
     }
 
     fn draw(&self, state: usize) -> Result<String> {
@@ -352,7 +311,7 @@ The fourth floor contains nothing relevant.";
     fn get_neighbors_initial() {
         let s = Solver::new("HL");
         assert_eq!(
-            vec![0b00001_01_1000_0101], // only hydrogen microchip is safe to move
+            vec![0b01_1000_0101], // only hydrogen microchip is safe to move
             get_neighbors(&s, 0b00_1000_0100)
         );
     }
@@ -360,16 +319,14 @@ The fourth floor contains nothing relevant.";
     #[test]
     fn get_neighbors_second_step() {
         let s = Solver::new("HL");
-        println!("{:020b}", 0b00001_01_1000_0101);
-        println!("{:020b}", 2698);
         assert_eq!(
             vec![
                 // 0b01_01_1000_0101
-                0b00010_00_1000_0100, // move the hydrogen microchip down
-                0b00010_10_1000_1010, // move both hydrogen items up
-                0b00010_10_1000_1001, // move the hydrogen generator up
+                0b00_1000_0100, // move the hydrogen microchip down
+                0b10_1000_1010, // move both hydrogen items up
+                0b10_1000_1001, // move the hydrogen generator up
             ],
-            get_neighbors(&s, 0b00001_01_1000_0101)
+            get_neighbors(&s, 0b01_1000_0101)
         );
     }
 
@@ -411,7 +368,7 @@ F1 E  .  HM .  LM
     fn test_real_input() {
         use crate::{with_input, Part};
         with_input(2016, 11, |input, tx| {
-            let (mut elements, initial_state) = parse(input);
+            let (elements, initial_state) = parse(input);
             tx.send(Part::A(Box::new(
                 Solver::new(&elements).solve(initial_state),
             )))
@@ -419,12 +376,20 @@ F1 E  .  HM .  LM
             /*
             Enqueued 32465261 states
             Checked  6042452 distinct states
-            solve     11769971830 Timing { count: Cell { value: 1 }, nanos: Cell { value: 27467432583 }, start: Cell { value: None } }
-            neighbors  6148624358 Timing { count: Cell { value: 6042451 }, nanos: Cell { value: 15697460753 }, start: Cell { value: None } }
-            is_safe    9548836395 Timing { count: Cell { value: 98091478 }, nanos: Cell { value: 9548836395 }, start: Cell { value: None } }
+            solve     18.506684709s Timing { count: Cell { value: 1 }, time: Cell { value: 18.506684709s }, start: Cell { value: None } }
+            neighbors           0ns Timing { count: Cell { value: 0 }, time: Cell { value: 0ns }, start: Cell { value: None } }
+            is_safe             0ns Timing { count: Cell { value: 0 }, time: Cell { value: 0ns }, start: Cell { value: None } }
             Verified B[55]
-                 Part B:           55 (27.468558208s)
+                 Part B:           55 (18.507729042s)
+            Enqueued 32465261 states
+            Checked  6042452 distinct states
+            solve     11.530202504s Timing { count: Cell { value: 1 }, time: Cell { value: 25.281575042s }, start: Cell { value: None } }
+            neighbors  5.944627512s Timing { count: Cell { value: 6042451 }, time: Cell { value: 13.751372538s }, start: Cell { value: None } }
+            is_safe    7.806745026s Timing { count: Cell { value: 98091478 }, time: Cell { value: 7.806745026s }, start: Cell { value: None } }
+            Verified B[55]
+                 Part B:           55 (25.282657042s)
                  */
+            // let mut elements = elements;
             // elements.push('E');
             // elements.push('D');
             // tx.send(Part::B(Box::new(

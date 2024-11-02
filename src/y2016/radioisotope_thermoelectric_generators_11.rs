@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::timing::Timing;
 use anyhow::Result;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -65,7 +66,7 @@ impl Solver {
                     t_solve.total_time() - self.t_build_neighbors.total_time(),
                     t_solve
                 );
-                if self.t_build_neighbors.invoked() {
+                if !self.t_build_neighbors.is_empty() {
                     println!(
                         "{:9} {:>13?} {:?}",
                         "neighbors",
@@ -73,7 +74,7 @@ impl Solver {
                         self.t_build_neighbors
                     );
                 }
-                if self.t_is_safe.invoked() {
+                if !self.t_is_safe.is_empty() {
                     println!(
                         "{:9} {:>13?} {:?}",
                         "is_safe",

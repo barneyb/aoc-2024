@@ -21,12 +21,12 @@ example_tests = ""
 has_part_two = False
 for i, e in enumerate(puzzle.examples, start=1):
     example_tests += f"""
-    const EXAMPLE_{i}: &str = r#"{e.input_data}"#;
-    """
+    const EXAMPLE_{i}: &str = r#"{e.input_data}"#;\n"""
 for i, e in enumerate(puzzle.examples, start=1):
     asserts = ""
     if e.extra:
-        asserts = f"""\*
+        asserts = f"""
+        /*
          {e.extra}
          */"""
     if e.answer_a:
@@ -38,9 +38,9 @@ for i, e in enumerate(puzzle.examples, start=1):
         assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
     example_tests += f"""
     #[test]
-    fn example_{i}() {{{asserts}
-    }}
-    """
+    fn example_{i}() {{
+        {asserts.strip()}
+    }}"""
     print(f"Example {i}")
     print("-" * 80)
     print(e.input_data)
@@ -66,7 +66,7 @@ params = dict(
     day = day,
     zday = zday,
     name = name,
-    example_tests = example_tests or f"""
+    example_tests = example_tests.strip() or f"""
     #[test]
     fn test_part_one() {{
         assert_eq!(3, part_one("AoC"));
@@ -109,7 +109,8 @@ ${p2p}}
 #[cfg(test)]
 mod test {
     use super::*;
-$example_tests
+
+    $example_tests
 
     // #[test]
     // fn test_real_input() {
@@ -132,7 +133,7 @@ fn main() -> Result<(), Error> {
     with_input($year, $day, |input, tx| {
         tx.send(Part::Other(Box::new(part_one(input)))).unwrap();
         // tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-        // tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+        // tx.send(Part::B(Box::new(aoc::$yyear::${name}_$zday::part_two(input)))).unwrap();
     })
 }
 """).substitute(params))

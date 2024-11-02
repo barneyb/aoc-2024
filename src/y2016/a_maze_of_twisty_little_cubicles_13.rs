@@ -46,10 +46,6 @@ fn is_open(p: (u32, u32), seed: u32) -> bool {
     ((x * x + 3 * x + 2 * x * y + y + y * y) + seed).count_ones() % 2 == 0
 }
 
-fn is_wall(p: (u32, u32), seed: u32) -> bool {
-    !is_open(p, seed)
-}
-
 // pub fn part_two(input: &str) -> usize {
 //     input.len()
 // }
@@ -71,29 +67,29 @@ mod test {
         // x = 0
         assert!(is_open((0, 0), seed));
         assert!(is_open((0, 1), seed));
-        assert!(is_wall((0, 2), seed));
-        assert!(is_wall((0, 3), seed));
+        assert!(!is_open((0, 2), seed));
+        assert!(!is_open((0, 3), seed));
         assert!(is_open((0, 4), seed));
         assert!(is_open((0, 5), seed));
-        assert!(is_wall((0, 6), seed));
+        assert!(!is_open((0, 6), seed));
         // x = 4
-        assert!(is_wall((4, 0), seed));
+        assert!(!is_open((4, 0), seed));
         assert!(is_open((4, 1), seed));
         assert!(is_open((4, 2), seed));
-        assert!(is_wall((4, 3), seed));
+        assert!(!is_open((4, 3), seed));
         assert!(is_open((4, 4), seed));
         assert!(is_open((4, 5), seed));
-        assert!(is_wall((4, 6), seed));
+        assert!(!is_open((4, 6), seed));
         // y = 4
         assert!(is_open((0, 4), seed));
-        assert!(is_wall((1, 4), seed));
-        assert!(is_wall((2, 4), seed));
+        assert!(!is_open((1, 4), seed));
+        assert!(!is_open((2, 4), seed));
         assert!(is_open((3, 4), seed));
         assert!(is_open((4, 4), seed));
-        assert!(is_wall((5, 4), seed));
+        assert!(!is_open((5, 4), seed));
         assert!(is_open((6, 4), seed));
         assert!(is_open((7, 4), seed));
-        assert!(is_wall((8, 4), seed));
+        assert!(!is_open((8, 4), seed));
         assert!(is_open((9, 4), seed));
     }
 

@@ -1,21 +1,32 @@
+use crate::Part;
 use std::collections::{HashSet, VecDeque};
+use std::sync::mpsc::Sender;
 
-pub fn part_one(input: &str) -> usize {
+pub fn do_solve(input: &str, tx: Sender<Part>) {
     let seed: u32 = input.parse().expect(&format!(
         "Input '{input}' should have been a natural number"
     ));
-    steps_to((31, 39), seed).0
+    steps_to((31, 39), seed, Some(tx));
 }
 
-fn steps_to(goal: (u32, u32), seed: u32) -> (usize, usize) {
+fn steps_to(goal: (u32, u32), seed: u32, opt_tx: Option<Sender<Part>>) -> (usize, usize) {
     let mut queue = VecDeque::from([((1, 1), 0)]);
     let mut considered = HashSet::new();
     let mut within_fifty = 0;
+    let mut sent_fifty = false;
     while let Some((p, steps)) = queue.pop_front() {
         if steps < 50 {
             within_fifty += 1;
+        } else if !sent_fifty {
+            sent_fifty = true;
+            if let Some(tx) = &opt_tx {
+                tx.send(Part::B(within_fifty.to_string())).unwrap();
+            }
         }
         if p == goal {
+            if let Some(tx) = &opt_tx {
+                tx.send(Part::A(steps.to_string())).unwrap();
+            }
             return (steps, within_fifty);
         }
         let (x, y) = p;
@@ -50,13 +61,6 @@ fn is_open(p: (u32, u32), seed: u32) -> bool {
     ((x * x + 3 * x + 2 * x * y + y + y * y) + seed).count_ones() % 2 == 0
 }
 
-pub fn part_two(input: &str) -> usize {
-    let seed: u32 = input.parse().expect(&format!(
-        "Input '{input}' should have been a natural number"
-    ));
-    steps_to((31, 39), seed).1
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -65,7 +69,7 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(11, steps_to((7, 4), EXAMPLE_1).0);
+        assert_eq!(11, steps_to((7, 4), EXAMPLE_1, None).0);
     }
 
     #[test]
@@ -102,11 +106,7 @@ mod test {
 
     #[test]
     fn test_real_input() {
-        use crate::{with_input, Part};
-        with_input(2016, 13, |input, tx| {
-            tx.send(Part::A(part_one(input).to_string())).unwrap();
-            tx.send(Part::B(part_two(input).to_string())).unwrap();
-        })
-        .unwrap();
+        use crate::with_input;
+        with_input(2016, 13, do_solve).unwrap();
     }
 }

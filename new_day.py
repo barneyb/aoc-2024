@@ -6,6 +6,7 @@ import sys
 from string import Template
 from zoneinfo import ZoneInfo
 from aocd.models import Puzzle
+
 AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
 year = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.year
@@ -61,12 +62,13 @@ zday = str(day) if day >= 10 else f"0{day}"
 name = re.sub("[^a-z0-9]+", "_", puzzle.title.lower())
 p2p = "" if has_part_two else "// "
 params = dict(
-    year = year,
-    yyear = yyear,
-    day = day,
-    zday = zday,
-    name = name,
-    example_tests = example_tests.strip() or f"""#[test]
+    year=year,
+    yyear=yyear,
+    day=day,
+    zday=zday,
+    name=name,
+    example_tests=example_tests.strip()
+    or f"""#[test]
     fn test_part_one() {{
         assert_eq!(3, part_one("AoC"));
     }}
@@ -75,7 +77,7 @@ params = dict(
     {p2p}fn test_part_two() {{
     {p2p}    assert_eq!(12, part_two("adventofcode"));
     {p2p}}}""",
-    p2p = p2p,
+    p2p=p2p,
 )
 
 print(params)
@@ -85,8 +87,17 @@ if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
 
 subprocess.run(["git", "fetch"], check=True)
 # if master is at/after origin/master, use master, otherwise use origin/master
-start_ref ="master" if subprocess.run(["git", "merge-base", "--is-ancestor", "origin/master", "master"]).returncode == 0 else "origin/master"
-subprocess.run(["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True)
+start_ref = (
+    "master"
+    if subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "origin/master", "master"]
+    ).returncode
+    == 0
+    else "origin/master"
+)
+subprocess.run(
+    ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
+)
 
 year_filename = f"./src/{yyear}.rs"
 module_filename = f"./src/{yyear}/{name}_{zday}.rs"
@@ -97,7 +108,9 @@ with open(year_filename, "a", encoding="utf-8") as f:
 
 subprocess.run(["mkdir", "-p", f"./src/{yyear}"], check=True)
 with open(module_filename, "w", encoding="utf-8") as f:
-    f.write(Template("""use crate::Part;
+    f.write(
+        Template(
+            """use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
@@ -123,20 +136,28 @@ mod test {
     //     crate::with_input($year, $day, do_solve).unwrap();
     // }
 }
-""").substitute(params))
+"""
+        ).substitute(params)
+    )
 
 with open(binary_filename, "w", encoding="utf-8") as f:
-    f.write(Template("""use aoc::$yyear::${name}_$zday::do_solve;
+    f.write(
+        Template(
+            """use aoc::$yyear::${name}_$zday::do_solve;
 use std::io::Error;
 
 fn main() -> Result<(), Error> {
     aoc::with_input($year, $day, do_solve)
 }
-""").substitute(params))
+"""
+        ).substitute(params)
+    )
 
 subprocess.run(["cargo", "run", "--bin", name], check=True)
 subprocess.run(["git", "add", module_filename, binary_filename], check=True)
 day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
-subprocess.run(["git", "commit", "-am", f"skeleton for {day_spec}: {puzzle.title}"], check=True)
+subprocess.run(
+    ["git", "commit", "-am", f"skeleton for {day_spec}: {puzzle.title}"], check=True
+)
 subprocess.run(["idea", binary_filename])
 subprocess.run(["idea", module_filename])

@@ -1,5 +1,3 @@
-use crate::y2016::leonardo_s_monorail_12::Val::Imm;
-
 #[derive(Debug, Eq, PartialEq)]
 enum Val {
     A,
@@ -16,9 +14,10 @@ impl From<&str> for Val {
             "b" => Val::B,
             "c" => Val::C,
             "d" => Val::D,
-            n => Imm(n
-                .parse()
-                .expect(&format!("'{value}' should have been a signed integer"))),
+            n => Val::Imm(
+                n.parse()
+                    .expect(&format!("'{value}' should have been a signed integer")),
+            ),
         }
     }
 }

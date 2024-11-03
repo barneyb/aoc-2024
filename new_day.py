@@ -66,8 +66,7 @@ params = dict(
     day = day,
     zday = zday,
     name = name,
-    example_tests = example_tests.strip() or f"""
-    #[test]
+    example_tests = example_tests.strip() or f"""#[test]
     fn test_part_one() {{
         assert_eq!(3, part_one("AoC"));
     }}
@@ -121,7 +120,7 @@ mod test {
 
     // #[test]
     // fn test_real_input() {
-    //     aoc::with_input($year, $day, do_solve).unwrap();
+    //     crate::with_input($year, $day, do_solve).unwrap();
     // }
 }
 """).substitute(params))

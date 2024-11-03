@@ -2,15 +2,32 @@ use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
-fn part_one(input: &str) -> usize {
-    input.len()
+fn part_one(input: &str) -> u32 {
+    let mut prev = input.chars().rev().next().unwrap();
+    let mut sum = 0;
+    for c in input.chars() {
+        if c == prev {
+            sum += c.to_digit(10).unwrap();
+        }
+        prev = c;
+    }
+    sum
 }
 
-fn part_two(input: &str) -> usize {
-    input.len()
+fn part_two(input: &str) -> u32 {
+    let chars: Vec<char> = input.chars().collect();
+    let (first, second) = chars.split_at(chars.len() / 2);
+    let mut sum = 0;
+    for (c, d) in first.iter().zip(second) {
+        if c == d {
+            sum += c.to_digit(10).unwrap() * 2;
+        }
+    }
+    sum
 }
 
 #[cfg(test)]
@@ -80,8 +97,8 @@ mod test {
         assert_eq!(r"4", part_two(EXAMPLE_9).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2017, 1, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2017, 1, do_solve).unwrap();
+    }
 }

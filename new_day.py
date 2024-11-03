@@ -41,7 +41,7 @@ for i, e in enumerate(puzzle.examples, start=1):
     #[test]
     fn example_{i}() {{
         {asserts.strip()}
-    }}"""
+    }}\n"""
     print(f"Example {i}")
     print("-" * 80)
     print(e.input_data)

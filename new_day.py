@@ -98,11 +98,18 @@ with open(year_filename, "a", encoding="utf-8") as f:
 
 subprocess.run(["mkdir", "-p", f"./src/{yyear}"], check=True)
 with open(module_filename, "w", encoding="utf-8") as f:
-    f.write(Template("""pub fn part_one(input: &str) -> usize {
+    f.write(Template("""use crate::Part;
+use std::sync::mpsc::Sender;
+
+pub fn do_solve(input: &str, tx: Sender<Part>) {
+    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+}
+
+fn part_one(input: &str) -> usize {
     input.len()
 }
 
-${p2p}pub fn part_two(input: &str) -> usize {
+${p2p}fn part_two(input: &str) -> usize {
 ${p2p}    input.len()
 ${p2p}}
 
@@ -114,27 +121,17 @@ mod test {
 
     // #[test]
     // fn test_real_input() {
-    //     use crate::{with_input, Part};
-    //     with_input($year, $day, |input, tx| {
-    //         tx.send(Part::A(part_one(input).to_string())).unwrap();
-    //         ${p2p}tx.send(Part::B(part_two(input).to_string())).unwrap();
-    //     })
-    //     .unwrap();
+    //     aoc::with_input($year, $day, do_solve).unwrap();
     // }
 }
 """).substitute(params))
 
 with open(binary_filename, "w", encoding="utf-8") as f:
-    f.write(Template("""use aoc::$yyear::${name}_$zday::part_one;
-use aoc::{with_input, Part};
+    f.write(Template("""use aoc::$yyear::${name}_$zday::do_solve;
 use std::io::Error;
 
 fn main() -> Result<(), Error> {
-    with_input($year, $day, |input, tx| {
-        tx.send(Part::Other(Box::new(part_one(input)))).unwrap();
-        // tx.send(Part::A(part_one(input).to_string())).unwrap();
-        // tx.send(Part::B(aoc::$yyear::${name}_$zday::part_two(input).to_string())).unwrap();
-    })
+    aoc::with_input($year, $day, do_solve)
 }
 """).substitute(params))
 

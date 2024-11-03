@@ -153,6 +153,7 @@ mod timing_tests {
         let t = Timing::default();
         t.run(|| thread::sleep(Duration::from_millis(10)));
         t.run(|| thread::sleep(Duration::from_millis(20)));
+        println!("total time: {:?}", t.total_time());
         assert!(t.total_time() > Duration::from_millis(30));
         // this _could_ flake, but hopefully not
         assert!(t.total_time() < Duration::from_millis(40));
@@ -163,6 +164,7 @@ mod timing_tests {
         let t = Timing::default();
         t.run(|| thread::sleep(Duration::from_millis(10)));
         t.run(|| thread::sleep(Duration::from_millis(20)));
+        println!("average time: {:?}", t.average_time());
         assert!(t.average_time() > Duration::from_millis(15));
         // this _could_ flake, but hopefully not
         assert!(t.average_time() < Duration::from_millis(20));

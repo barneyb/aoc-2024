@@ -24,3 +24,5 @@ subprocess.run(["git", "merge", "--no-edit", branch],
                check=True)
 subprocess.run(["cargo", "test"],
                check=True)
+subprocess.run(["git", "push"],
+               check=True)

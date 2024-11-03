@@ -104,6 +104,7 @@ impl Cpu {
     }
 
     fn execute(&mut self, program: &Vec<ISA>) {
+        self.ip = 0;
         while self.ip < program.len() {
             match &program[self.ip] {
                 ISA::Set(r, v) => self.set(r, self.get(v)),
@@ -130,43 +131,83 @@ impl Cpu {
 }
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap()
+    // This assumes register f is always used as the 'is composite' flag, and is
+    // initialized immediately after setting up b and c (based on a's value).
+    let prologue = parse(input)
+        .into_iter()
+        .take_while(|ins| {
+            if let ISA::Set(Val::F, _) = ins {
+                false
+            } else {
+                true
+            }
+        })
+        .collect();
+    tx.send(Part::A(part_one(&prologue).to_string())).unwrap();
+    tx.send(Part::B(part_two(&prologue).to_string())).unwrap();
 }
 
-fn part_one(input: &str) -> usize {
-    let program = parse(input);
+// b minus two, squared
+fn part_one(prologue: &Vec<ISA>) -> isize {
     let mut cpu = Cpu::default();
-    cpu.execute(&program);
-    cpu.mult_count
+    cpu.execute(&prologue);
+    cpu.execute(&parse(
+        r"
+        sub b 2
+        mul b b",
+    ));
+    cpu.get(&Val::B)
+}
+
+// Of every seventeenth number between b and c, inclusive, how many are composite?
+fn part_two(prologue: &Vec<ISA>) -> usize {
+    let mut cpu = Cpu::default();
+    cpu.set(&Val::A, 1);
+    cpu.execute(&prologue);
+    let b = cpu.get(&Val::B);
+    let c = cpu.get(&Val::C);
+    (b..=c)
+        .step_by(17)
+        .filter(|&num| {
+            for factor in 2..((num as f64).sqrt() as isize) {
+                if num % factor == 0 {
+                    return true;
+                }
+            }
+            false
+        })
+        .count()
 }
 
 fn parse(input: &str) -> Vec<ISA> {
     input.trim().lines().map(ISA::from).collect()
 }
 
-// fn part_two(input: &str) -> usize {
-//     input.len()
-// }
-
 #[cfg(test)]
 mod test {
     use super::*;
 
-    const TEST: &str = r#"set a 1
-set b 2
-set c b
-sub c a
-mul a b"#;
-
-    #[test]
-    fn test_part_one() {
-        assert_eq!(1, part_one(TEST));
+    // ¡¡hard-coded from my github input!!
+    #[allow(dead_code)]
+    fn execute(a: isize) -> (isize, isize) {
+        let b: isize = 57;
+        let mut h = 0;
+        let (b, c) = if a == 0 {
+            (b, b)
+        } else {
+            let b = b * 100 + 100_000;
+            (b, b + 17_000)
+        };
+        for b in (b..=c).step_by(17) {
+            for f in 2..((b as f64).sqrt() as isize) {
+                if b % f == 0 {
+                    h += 1;
+                    break;
+                }
+            }
+        }
+        ((b - 2).pow(2), h)
     }
-
-    // #[test]
-    // fn test_part_two() {
-    //     assert_eq!(12, part_two("adventofcode"));
-    // }
 
     #[test]
     fn test_real_input() {

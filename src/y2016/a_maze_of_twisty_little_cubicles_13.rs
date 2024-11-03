@@ -4,18 +4,22 @@ pub fn part_one(input: &str) -> usize {
     let seed: u32 = input.parse().expect(&format!(
         "Input '{input}' should have been a natural number"
     ));
-    steps_to((31, 39), seed)
+    steps_to((31, 39), seed).0
 }
 
-fn steps_to(goal: (u32, u32), seed: u32) -> usize {
+fn steps_to(goal: (u32, u32), seed: u32) -> (usize, usize) {
     let mut queue = VecDeque::from([((1, 1), 0)]);
     let mut considered = HashSet::new();
-    while let Some((p, s)) = queue.pop_front() {
+    let mut within_fifty = 0;
+    while let Some((p, steps)) = queue.pop_front() {
+        if steps < 50 {
+            within_fifty += 1;
+        }
         if p == goal {
-            return s;
+            return (steps, within_fifty);
         }
         let (x, y) = p;
-        let s = s + 1;
+        let s = steps + 1;
         if y > 0 {
             let p = (x, y - 1);
             if considered.insert(p) && is_open(p, seed) {
@@ -46,9 +50,12 @@ fn is_open(p: (u32, u32), seed: u32) -> bool {
     ((x * x + 3 * x + 2 * x * y + y + y * y) + seed).count_ones() % 2 == 0
 }
 
-// pub fn part_two(input: &str) -> usize {
-//     input.len()
-// }
+pub fn part_two(input: &str) -> usize {
+    let seed: u32 = input.parse().expect(&format!(
+        "Input '{input}' should have been a natural number"
+    ));
+    steps_to((31, 39), seed).1
+}
 
 #[cfg(test)]
 mod test {
@@ -58,7 +65,7 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(r"11", steps_to((7, 4), EXAMPLE_1).to_string());
+        assert_eq!(11, steps_to((7, 4), EXAMPLE_1).0);
     }
 
     #[test]
@@ -98,7 +105,7 @@ mod test {
         use crate::{with_input, Part};
         with_input(2016, 13, |input, tx| {
             tx.send(Part::A(part_one(input).to_string())).unwrap();
-            // tx.send(Part::B(part_two(input).to_string())).unwrap();
+            tx.send(Part::B(part_two(input).to_string())).unwrap();
         })
         .unwrap();
     }

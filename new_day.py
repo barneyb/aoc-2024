@@ -116,8 +116,8 @@ mod test {
     // fn test_real_input() {
     //     use crate::{with_input, Part};
     //     with_input($year, $day, |input, tx| {
-    //         tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-    //         ${p2p}tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+    //         tx.send(Part::A(part_one(input).to_string())).unwrap();
+    //         ${p2p}tx.send(Part::B(part_two(input).to_string())).unwrap();
     //     })
     //     .unwrap();
     // }
@@ -132,8 +132,8 @@ use std::io::Error;
 fn main() -> Result<(), Error> {
     with_input($year, $day, |input, tx| {
         tx.send(Part::Other(Box::new(part_one(input)))).unwrap();
-        // tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-        // tx.send(Part::B(Box::new(aoc::$yyear::${name}_$zday::part_two(input)))).unwrap();
+        // tx.send(Part::A(part_one(input).to_string())).unwrap();
+        // tx.send(Part::B(aoc::$yyear::${name}_$zday::part_two(input).to_string())).unwrap();
     })
 }
 """).substitute(params))

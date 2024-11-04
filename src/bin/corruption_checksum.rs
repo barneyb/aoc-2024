@@ -4,7 +4,7 @@ use std::io::Error;
 
 fn main() -> Result<(), Error> {
     with_input(2017, 2, |input, tx| {
-        tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-        tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+        tx.send(Part::A(part_one(input).to_string())).unwrap();
+        tx.send(Part::B(part_two(input).to_string())).unwrap();
     })
 }

@@ -370,9 +370,9 @@ F1 E  .  HM .  LM
         use crate::{with_input, Part};
         with_input(2016, 11, |input, tx| {
             let (elements, initial_state) = parse(input);
-            tx.send(Part::A(Box::new(
-                Solver::new(&elements).solve(initial_state),
-            )))
+            tx.send(Part::A(
+                Solver::new(&elements).solve(initial_state).to_string(),
+            ))
             .unwrap();
             /*
             Enqueued 32465261 states

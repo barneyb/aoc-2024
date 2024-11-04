@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-const BLOCK: char = '█';
+pub const BLOCK: char = '█';
 const WIDTH: usize = 5;
 const HEIGHT: usize = 6;
 
@@ -34,20 +34,13 @@ lazy_static! {
         // X
         m.insert("█   █\n█   █\n █ █ \n  █  \n  █  \n  █  \n", 'Y');
         m.insert("████ \n   █ \n  █  \n █   \n█    \n████ \n", 'Z');
-        let char_len = WIDTH * HEIGHT + HEIGHT;
-        for (s,c) in m.iter() {
-            let cl =s.chars().count();
-            if cl != char_len {
-                panic!("Char '{c}' is malformed: len {cl} not len {char_len}")
-            }
-        }
         m
     };
 }
 
 /// Parse block printing (a la 2016/08 Two-Factor Authentication) and turn it
 /// into an equivalent string of uppercase ASCII letters. All block printed
-/// strings are six rows 'tall', and fixed-width at five columns.
+/// strings are six rows 'tall', and fixed-width at five columns per char.
 ///
 /// Spaces and periods are considered "blank"; all other glyphs are considered
 /// "marked". Leading and trailing newlines will be trimmed. The final trailing
@@ -81,16 +74,19 @@ pub fn parse_block_letters(display: &str) -> Result<String, &str> {
             ' ' | '\n' | '\r' => c,
             _ => BLOCK,
         })
-        .collect::<String>();
-    let lines = sanitized.lines().collect::<Vec<_>>();
-    if lines.len() != 6 {
-        eprintln!("Block printed letters with height {}, not 6.", lines.len());
+        .collect::<Vec<_>>();
+    let lines = sanitized.split(|&c| c == '\n').collect::<Vec<_>>();
+    if lines.len() != HEIGHT {
+        eprintln!(
+            "Block printed letters with height {}, not {HEIGHT}.",
+            lines.len()
+        );
         eprintln!("{display}");
         return Err("Block printed letters are always exactly six lines tall.");
     }
     let mut line_len = None;
     for (i, l) in lines.iter().enumerate() {
-        let len = l.chars().count();
+        let len = l.len();
         if let Some(ll) = line_len {
             if ll != len {
                 eprintln!(
@@ -99,9 +95,9 @@ pub fn parse_block_letters(display: &str) -> Result<String, &str> {
                 );
                 return Err("Block printed lines are always the same width.");
             }
-        } else if len % 5 != 0 {
+        } else if len % WIDTH != 0 {
             eprintln!(
-                "Block printed line {i} has {len} characters, which isn't divisible by 5.\n{}",
+                "Block printed line {i} has {len} characters, which isn't divisible by {WIDTH}.\n{}",
                 display.replace(' ', ".")
             );
             return Err("Block printed letters are always exactly five chars wide.");
@@ -115,7 +111,7 @@ pub fn parse_block_letters(display: &str) -> Result<String, &str> {
         for i in (0..line_len).step_by(WIDTH) {
             buffer.clear();
             for l in lines.iter() {
-                buffer.extend(l.chars().skip(i).take(WIDTH));
+                buffer.extend(&l[i..(i + WIDTH)]);
                 buffer.push('\n');
             }
             // I remain confused why a &String doesn't coerce to &str, and requires
@@ -139,6 +135,17 @@ pub fn parse_block_letters(display: &str) -> Result<String, &str> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn glyph_layouts() {
+        let char_len = WIDTH * HEIGHT + HEIGHT;
+        for (s, c) in BLOCK_GLYPHS.iter() {
+            let cl = s.chars().count();
+            if cl != char_len {
+                panic!("Glyph for '{c}' is malformed: len {cl} not len {char_len}")
+            }
+        }
+    }
 
     #[test]
     fn cockleburs() {

@@ -15,5 +15,8 @@ answer = getattr(puzzle, f"answer_{part}")
 if val == answer:
     print(f"'{val}' is correct!")
     exit(0)
-print(f"Expected '{answer}', actual '{val}'")
+if val.__contains__("\n"):
+    print(f"Expected '{answer}', actual:\n{val}")
+else:
+    print(f"Expected '{answer}', actual '{val}'")
 exit(2)

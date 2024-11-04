@@ -1,4 +1,4 @@
-use aoc::y2016::leonardo_s_monorail_12::{part_one, part_two};
+use aoc::y2016::leonardos_monorail_12::{part_one, part_two};
 use aoc::{with_input, Part};
 use std::io::Error;
 

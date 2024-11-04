@@ -59,7 +59,9 @@ print()
 
 yyear = f"y{year}"
 zday = str(day) if day >= 10 else f"0{day}"
-name = re.sub("[^a-z0-9]+", "_", puzzle.title.lower())
+name = puzzle.title.lower()
+name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
+name = re.sub("[^a-z0-9]+", "_", name)
 p2p = "" if has_part_two else "// "
 params = dict(
     year=year,

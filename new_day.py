@@ -100,6 +100,7 @@ start_ref = (
 subprocess.run(
     ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
 )
+subprocess.run(["cargo", "test"], check=True)
 
 year_filename = f"./src/{yyear}.rs"
 module_filename = f"./src/{yyear}/{name}_{zday}.rs"

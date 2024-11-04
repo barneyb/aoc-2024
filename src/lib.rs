@@ -148,12 +148,24 @@ impl Print {
             Part::B(a) => (a, pstyle.apply_to("Part B:".to_string())),
             Part::Other(a) => (a, self.other_style.apply_to(format!("Answer {count}:"))),
         };
-        println!(
-            "{:>12} {:>12} {}",
-            self.correct_style.apply_to(lbl),
-            self.ans_style.apply_to(ans),
-            self.time_style.apply_to(format!("({:>12?})", duration))
-        );
+        if ans.contains('\n') {
+            let twelve_spaces = format!(" {:>12}", "");
+            println!(
+                "{:>12}{} {}\n{}{}",
+                self.correct_style.apply_to(lbl),
+                twelve_spaces,
+                self.time_style.apply_to(format!("({:>12?})", duration)),
+                twelve_spaces,
+                ans.replace('\n', &format!("\n{twelve_spaces}"))
+            );
+        } else {
+            println!(
+                "{:>12} {:>12} {}",
+                self.correct_style.apply_to(lbl),
+                self.ans_style.apply_to(ans),
+                self.time_style.apply_to(format!("({:>12?})", duration))
+            );
+        }
         correct
     }
 }

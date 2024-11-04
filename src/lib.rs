@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use std::{io, thread};
 
 pub mod aocd;
+pub mod block_print;
 pub mod timing;
 pub mod util;
 pub mod y2015;

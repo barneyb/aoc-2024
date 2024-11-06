@@ -13,7 +13,33 @@ year = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.year
 day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
 if year < day:
     (year, day) = (day, year)
+yyear = f"y{year}"
+zday = str(day) if day >= 10 else f"0{day}"
 puzzle = Puzzle(year=year, day=day)
+name = puzzle.title.lower()
+name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
+name = re.sub("[^a-z0-9]+", "_", name)
+print(f"{year} Day {day}: {puzzle.title}")
+
+# first, verify we're ready to start a new day...
+if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
+    subprocess.run(["git", "commit", "-am", "WIP"], check=True)
+
+subprocess.run(["git", "fetch"], check=True)
+# if master is at/after origin/master, use master, otherwise use origin/master
+start_ref = (
+    "master"
+    if subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "origin/master", "master"]
+    ).returncode
+    == 0
+    else "origin/master"
+)
+subprocess.run(
+    ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
+)
+subprocess.run(["cargo", "test"], check=True)
+
 print()
 print(f"{year} Day {day}: {puzzle.title}")
 print()
@@ -57,11 +83,6 @@ print(f"{puzzle.input_data}")
 print("-" * 80)
 print()
 
-yyear = f"y{year}"
-zday = str(day) if day >= 10 else f"0{day}"
-name = puzzle.title.lower()
-name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
-name = re.sub("[^a-z0-9]+", "_", name)
 p2p = "" if has_part_two else "// "
 params = dict(
     year=year,
@@ -81,26 +102,6 @@ params = dict(
     {p2p}}}""",
     p2p=p2p,
 )
-
-print(params)
-
-if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
-    subprocess.run(["git", "commit", "-am", "WIP"], check=True)
-
-subprocess.run(["git", "fetch"], check=True)
-# if master is at/after origin/master, use master, otherwise use origin/master
-start_ref = (
-    "master"
-    if subprocess.run(
-        ["git", "merge-base", "--is-ancestor", "origin/master", "master"]
-    ).returncode
-    == 0
-    else "origin/master"
-)
-subprocess.run(
-    ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
-)
-subprocess.run(["cargo", "test"], check=True)
 
 year_filename = f"./src/{yyear}.rs"
 module_filename = f"./src/{yyear}/{name}_{zday}.rs"

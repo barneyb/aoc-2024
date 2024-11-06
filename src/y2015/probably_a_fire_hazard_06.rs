@@ -2,15 +2,129 @@ use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
+}
+
+struct XY(usize, usize);
+
+impl From<&str> for XY {
+    fn from(value: &str) -> Self {
+        let parts = value
+            .split(',')
+            .map(|s| s.parse().unwrap())
+            .collect::<Vec<_>>();
+        XY(parts[0], parts[1])
+    }
+}
+
+impl From<Option<&str>> for XY {
+    fn from(value: Option<&str>) -> Self {
+        value.expect("Can't parse an XY from None").into()
+    }
+}
+
+enum Ins {
+    On(XY, XY),
+    Off(XY, XY),
+    Toggle(XY, XY),
+}
+
+impl From<&str> for Ins {
+    fn from(value: &str) -> Self {
+        let mut words = value.split_ascii_whitespace();
+        match words.next() {
+            Some("toggle") => {
+                let a = words.next().into();
+                words.next();
+                Ins::Toggle(a, words.next().into())
+            }
+            Some("turn") => match words.next() {
+                Some("on") => {
+                    let a = words.next().into();
+                    words.next();
+                    Ins::On(a, words.next().into())
+                }
+                Some("off") => {
+                    let a = words.next().into();
+                    words.next();
+                    Ins::Off(a, words.next().into())
+                }
+                os => panic!("Unexpected {os:?}"),
+            },
+            os => panic!("Unexpected {os:?}"),
+        }
+    }
 }
 
 fn part_one(input: &str) -> usize {
-    input.len()
+    let mut array = vec![false; 1_000_000];
+    for ins in input.lines().map(Ins::from) {
+        match ins {
+            Ins::On(a, b) => {
+                for y in a.1..=b.1 {
+                    let dy = y * 1000;
+                    for x in a.0..=b.0 {
+                        array[dy + x] = true;
+                    }
+                }
+            }
+            Ins::Off(a, b) => {
+                for y in a.1..=b.1 {
+                    let dy = y * 1000;
+                    for x in a.0..=b.0 {
+                        array[dy + x] = false;
+                    }
+                }
+            }
+            Ins::Toggle(a, b) => {
+                for y in a.1..=b.1 {
+                    let dy = y * 1000;
+                    for x in a.0..=b.0 {
+                        let i = dy + x;
+                        array[i] = !array[i];
+                    }
+                }
+            }
+        }
+    }
+    array.iter().filter(|&&v| v).count()
 }
 
-fn part_two(input: &str) -> usize {
-    input.len()
+fn part_two(input: &str) -> u32 {
+    let mut array = vec![0; 1_000_000];
+    for ins in input.lines().map(Ins::from) {
+        match ins {
+            Ins::On(a, b) => {
+                for y in a.1..=b.1 {
+                    let dy = y * 1000;
+                    for x in a.0..=b.0 {
+                        array[dy + x] += 1;
+                    }
+                }
+            }
+            Ins::Off(a, b) => {
+                for y in a.1..=b.1 {
+                    let dy = y * 1000;
+                    for x in a.0..=b.0 {
+                        let idx = dy + x;
+                        if array[idx] > 0 {
+                            array[idx] -= 1;
+                        }
+                    }
+                }
+            }
+            Ins::Toggle(a, b) => {
+                for y in a.1..=b.1 {
+                    let dy = y * 1000;
+                    for x in a.0..=b.0 {
+                        array[dy + x] += 2;
+                    }
+                }
+            }
+        }
+    }
+    array.into_iter().sum()
 }
 
 #[cfg(test)]
@@ -52,8 +166,8 @@ mod test {
         assert_eq!(r"2000000", part_two(EXAMPLE_5).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2015, 6, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2015, 6, do_solve).unwrap();
+    }
 }

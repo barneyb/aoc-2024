@@ -28,6 +28,9 @@ pub enum Part {
     Other(String),
 }
 
+/// Invokes the passed `work`, passing it the given year/day/s input as a
+/// `String`, and a `Sender` which accepts [Part]-wrapped answers to be printed
+/// and verified.
 pub fn with_input<S>(year: u32, day: u8, work: S) -> Result<(), Error>
 where
     S: FnOnce(&str, Sender<Part>) -> (),
@@ -47,22 +50,21 @@ where
     });
 
     let input = aocd::get_input(year, day)?;
-    let time = Arc::new(RwLock::new(Instant::now()));
-    let answer_time = time.clone();
     let (solve_tx, solve_rx) = channel();
-    let solve_handle = thread::spawn(move || {
-        {
-            let mut t = time.write().unwrap();
-            *t = Instant::now();
-        }
-        let res = work(input.trim(), solve_tx);
-        res
-    });
+    let time_arc = Arc::new(RwLock::new(Instant::now()));
+    let answer_handle = {
+        let answer_time = time_arc.clone();
+        thread::spawn(move || listen_for_answers(answer_time, solve_rx, print_tx))
+    };
+    {
+        let mut t = time_arc.write().unwrap();
+        *t = Instant::now();
+    }
+    work(input.trim(), solve_tx);
 
-    listen_for_answers(answer_time, solve_rx, print_tx);
-    solve_handle
+    answer_handle
         .join()
-        .expect("Solve thread should have exited cleanly");
+        .expect("Answer thread should have exited cleanly");
     if print_handle
         .join()
         .expect("Print thread should have exited cleanly")

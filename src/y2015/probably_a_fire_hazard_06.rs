@@ -58,6 +58,10 @@ impl From<&str> for Ins {
 }
 
 fn part_one(input: &str) -> usize {
+    part_one_array(input).iter().filter(|&&v| v).count()
+}
+
+pub fn part_one_array(input: &str) -> Vec<bool> {
     let mut array = vec![false; 1_000_000];
     for ins in input.lines().map(Ins::from) {
         match ins {
@@ -88,7 +92,7 @@ fn part_one(input: &str) -> usize {
             }
         }
     }
-    array.iter().filter(|&&v| v).count()
+    array
 }
 
 fn part_two(input: &str) -> u32 {

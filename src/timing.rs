@@ -151,22 +151,22 @@ mod timing_tests {
     #[test]
     fn total_time() {
         let t = Timing::default();
-        t.run(|| thread::sleep(Duration::from_millis(10)));
-        t.run(|| thread::sleep(Duration::from_millis(20)));
+        t.run(|| thread::sleep(Duration::from_millis(100)));
+        t.run(|| thread::sleep(Duration::from_millis(200)));
         println!("total time: {:?}", t.total_time());
-        assert!(t.total_time() > Duration::from_millis(30));
+        assert!(t.total_time() > Duration::from_millis(300));
         // this _could_ flake, but hopefully not
-        assert!(t.total_time() < Duration::from_millis(40));
+        assert!(t.total_time() < Duration::from_millis(400));
     }
 
     #[test]
     fn average_time() {
         let t = Timing::default();
-        t.run(|| thread::sleep(Duration::from_millis(10)));
-        t.run(|| thread::sleep(Duration::from_millis(20)));
+        t.run(|| thread::sleep(Duration::from_millis(100)));
+        t.run(|| thread::sleep(Duration::from_millis(200)));
         println!("average time: {:?}", t.average_time());
-        assert!(t.average_time() > Duration::from_millis(15));
+        assert!(t.average_time() > Duration::from_millis(150));
         // this _could_ flake, but hopefully not
-        assert!(t.average_time() < Duration::from_millis(20));
+        assert!(t.average_time() < Duration::from_millis(200));
     }
 }

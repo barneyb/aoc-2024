@@ -96,6 +96,10 @@ pub fn part_one_array(input: &str) -> Vec<bool> {
 }
 
 fn part_two(input: &str) -> u32 {
+    part_two_array(input).into_iter().sum()
+}
+
+pub fn part_two_array(input: &str) -> Vec<u32> {
     let mut array = vec![0; 1_000_000];
     for ins in input.lines().map(Ins::from) {
         match ins {
@@ -128,7 +132,7 @@ fn part_two(input: &str) -> u32 {
             }
         }
     }
-    array.into_iter().sum()
+    array
 }
 
 #[cfg(test)]

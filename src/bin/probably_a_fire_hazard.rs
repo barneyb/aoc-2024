@@ -1,8 +1,7 @@
 use aoc::aocd;
-use aoc::y2015::probably_a_fire_hazard_06::part_one_array;
-use nannou::color::{BLACK, WHITE};
+use aoc::y2015::probably_a_fire_hazard_06::part_two_array;
+use nannou::color::{gray, BLACK};
 use nannou::event::{MouseScrollDelta, TouchPhase};
-use nannou::geom::Rect;
 use nannou::prelude::Update;
 use nannou::{App, Frame, LoopMode};
 
@@ -23,7 +22,8 @@ fn main() {
 struct Model {
     line: u32,
     prev: u32,
-    array: Vec<bool>,
+    array: Vec<u32>,
+    max: u32,
 }
 
 fn model(app: &App) -> Model {
@@ -34,10 +34,12 @@ fn model(app: &App) -> Model {
         .mouse_wheel(mouse_wheel)
         .build()
         .unwrap();
+    let array = part_two_array(&aocd::get_input(2015, 6).expect("Should have loaded input"));
     Model {
-        line: 0,
+        line: ROWS - 1,
         prev: 0,
-        array: part_one_array(&aocd::get_input(2015, 6).expect("Should have loaded input")),
+        max: *(array.iter().max().unwrap()),
+        array,
     }
 }
 
@@ -65,10 +67,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
     let line = model.line;
     let prev = model.prev;
     let draw = app.draw();
-    let m = MARGIN as f32;
-    let r = Rect::from_w_h(m * 3.0, m).top_left_of(app.window_rect());
-    draw.rect().color(WHITE).xy(r.xy()).wh(r.wh());
-    draw.text(&line.to_string()).color(BLACK).xy(r.xy());
+    // let m = MARGIN as f32;
+    // let r = Rect::from_w_h(m * 3.0, m).top_left_of(app.window_rect());
+    // draw.rect().color(WHITE).xy(r.xy()).wh(r.wh());
+    // draw.text(&line.to_string()).color(BLACK).xy(r.xy());
     let draw = draw
         .scale_y(-1.0) // y increases downward
         .x_y(COLS as f32 / -2.0, ROWS as f32 / -2.0) // move the origin to top-left
@@ -82,12 +84,18 @@ fn view(app: &App, model: &Model, frame: Frame) {
             .x_y(w / 2.0, h / 2.0)
             .w_h(w, h);
     } else {
+        let m = model.max as f32;
         for y in prev..line {
             let dy = (y * COLS) as usize;
             let ydraw = draw.y(y as f32);
             for x in 0..COLS as usize {
-                if model.array[dy + x] {
-                    ydraw.rect().color(WHITE).x(x as f32).w_h(1.0, 1.0);
+                let v = model.array[dy + x];
+                if v > 0 {
+                    ydraw
+                        .rect()
+                        .color(gray(v as f32 / m))
+                        .x(x as f32)
+                        .w_h(1.0, 1.0);
                 }
             }
         }

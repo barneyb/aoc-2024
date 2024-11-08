@@ -1,9 +1,6 @@
 use aoc::aocd;
 use aoc::y2015::probably_a_fire_hazard_06::part_two_array;
-use nannou::color::{gray, BLACK};
-use nannou::event::{MouseScrollDelta, TouchPhase};
-use nannou::prelude::Update;
-use nannou::{App, Frame, LoopMode};
+use nannou::prelude::*;
 
 const ROWS: u32 = 1000;
 const COLS: u32 = 1000;
@@ -31,6 +28,7 @@ fn model(app: &App) -> Model {
         .title(app.exe_name().unwrap())
         .size(WIDTH, HEIGHT)
         .view(view)
+        .key_pressed(key_pressed)
         .mouse_wheel(mouse_wheel)
         .build()
         .unwrap();
@@ -40,6 +38,16 @@ fn model(app: &App) -> Model {
         prev: 0,
         max: *(array.iter().max().unwrap()),
         array,
+    }
+}
+
+fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+    match key {
+        Key::S => {
+            app.main_window()
+                .capture_frame("viz/".to_string() + &app.exe_name().unwrap() + ".png");
+        }
+        _other_key => {}
     }
 }
 

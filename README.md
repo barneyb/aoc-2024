@@ -20,3 +20,11 @@ as well as keeps all of my "private" info out of the source code.
 You need a current-ish Rust, a current-ish Python, and `aocd` both pip-installed
 and configured with your AoC token. While there are some binary solvers, a given
 solver module's tests are where to start.
+
+## Visualization
+
+Some of the binaries do visualization, rather than spit out answers. One example
+is `probably_a_fire_hazard` ([2015 day 6](https://adventofcode.com/2015/day/6)),
+which displays the final winning light pattern:
+
+![Probably a Fire Hazard](viz/probably_a_fire_hazard.png)

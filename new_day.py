@@ -5,6 +5,7 @@ import subprocess
 import sys
 from string import Template
 from zoneinfo import ZoneInfo
+
 from aocd.models import Puzzle
 
 AOC_TZ = ZoneInfo("America/New_York")
@@ -80,6 +81,11 @@ for i, e in enumerate(puzzle.examples, start=1):
 print("Today's Input:")
 print("-" * 80)
 print(f"{puzzle.input_data}")
+print("-" * 80)
+# I'm wc! But terrible!
+print(
+    f"{len(puzzle.input_data.splitlines())} {len(puzzle.input_data.split())} {len(puzzle.input_data)}"
+)
 print("-" * 80)
 print()
 

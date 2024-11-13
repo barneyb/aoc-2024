@@ -1,6 +1,6 @@
 use crate::Part;
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt::{Display, Formatter, Write};
 use std::sync::mpsc::Sender;
 use Tile::*;
@@ -42,6 +42,7 @@ enum SpillOrSettle {
 
 struct Map {
     tiles: HashMap<Point, Tile>,
+    falls: VecDeque<Point>,
     x_bounds: (i32, i32),
     y_bounds: (i32, i32),
 }
@@ -58,22 +59,20 @@ impl Map {
     }
 
     fn turn_on_spring(&mut self) {
-        self.fall_from((SPRING_X, self.y_bounds.0));
-    }
-
-    fn fall_from(&mut self, src: Point) {
-        let (x, sy) = src;
-        for y in sy..=self.y_bounds.1 {
-            let mut p = (x, y);
-            match self.get_tile(&p) {
-                None | Some(Sand) => self.set_tile(p, Flowing),
-                Some(Clay | Settled) => {
-                    while let SpillOrSettle::Settle = self.spill_or_settle(p) {
-                        p = (x, p.1 - 1)
+        self.falls.push_back((SPRING_X, self.y_bounds.0));
+        while let Some((x, sy)) = self.falls.pop_front() {
+            for y in sy..=self.y_bounds.1 {
+                let mut p = (x, y);
+                match self.get_tile(&p) {
+                    None | Some(Sand) => self.set_tile(p, Flowing),
+                    Some(Clay | Settled) => {
+                        while let SpillOrSettle::Settle = self.spill_or_settle(p) {
+                            p = (x, p.1 - 1)
+                        }
+                        break;
                     }
-                    break;
+                    Some(Flowing) => break,
                 }
-                Some(Flowing) => break,
             }
         }
     }
@@ -106,10 +105,10 @@ impl Map {
         }
         self.fill(Flowing, min_spread, max_spread, spread_y);
         if !wall_min {
-            self.fall_from((min_spread, spread_y + 1))
+            self.falls.push_back((min_spread, spread_y + 1))
         }
         if !wall_max {
-            self.fall_from((max_spread, spread_y + 1))
+            self.falls.push_back((max_spread, spread_y + 1))
         }
         SpillOrSettle::Spill
     }
@@ -237,6 +236,7 @@ fn build_map(veins: &Veins) -> Map {
     }
     Map {
         tiles,
+        falls: VecDeque::new(),
         x_bounds: (x_min, x_max),
         y_bounds: (y_min, y_max),
     }

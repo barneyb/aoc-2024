@@ -45,6 +45,8 @@ struct Map {
     falls: VecDeque<Point>,
     x_bounds: (i32, i32),
     y_bounds: (i32, i32),
+    flow_count: usize,
+    settled_count: usize,
 }
 
 const SPRING_X: i32 = 500;
@@ -55,7 +57,17 @@ impl Map {
     }
 
     fn set_tile(&mut self, p: Point, t: Tile) {
-        self.tiles.insert(p, t);
+        match t {
+            Flowing => self.flow_count += 1,
+            Settled => self.settled_count += 1,
+            _ => panic!("Set {p:?} to {t}?!"),
+        }
+        if let Some(prev) = self.tiles.insert(p, t) {
+            match prev {
+                Flowing => self.flow_count -= 1,
+                _ => panic!("Overwrote a {prev} at {p:?} w/ a {t}?!"),
+            }
+        }
     }
 
     fn turn_on_spring(&mut self) {
@@ -90,11 +102,11 @@ impl Map {
         let spread_y = y - 1;
         let spread_from = (x, spread_y);
         let min_spread = self.find_extent(spread_from, -1, |x, t| match t {
-            Some(Clay) => false,
+            Some(Clay | Settled) => false,
             _ => x >= min_floor - 1,
         });
         let max_spread = self.find_extent(spread_from, 1, |x, t| match t {
-            Some(Clay) => false,
+            Some(Clay | Settled) => false,
             _ => x <= max_floor + 1,
         });
         let wall_min = min_spread > min_floor;
@@ -194,16 +206,7 @@ fn parse(input: &str) -> Veins {
 fn both_parts(veins: &Veins) -> (usize, usize) {
     let mut map = build_map(veins);
     map.turn_on_spring();
-    let mut settled = 0;
-    let mut flowing = 0;
-    for t in map.tiles.values() {
-        match t {
-            Flowing => flowing += 1,
-            Settled => settled += 1,
-            _ => {}
-        }
-    }
-    (flowing + settled, settled)
+    (map.flow_count + map.settled_count, map.settled_count)
 }
 
 fn build_map(veins: &Veins) -> Map {
@@ -239,6 +242,8 @@ fn build_map(veins: &Veins) -> Map {
         falls: VecDeque::new(),
         x_bounds: (x_min, x_max),
         y_bounds: (y_min, y_max),
+        flow_count: 0,
+        settled_count: 0,
     }
 }
 

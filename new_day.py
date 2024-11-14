@@ -20,6 +20,7 @@ puzzle = Puzzle(year=year, day=day)
 name = puzzle.title.lower()
 name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
 name = re.sub("[^a-z0-9]+", "_", name)
+name = name.strip("_")
 print(f"{year} Day {day}: {puzzle.title}")
 
 # first, verify we're ready to start a new day...

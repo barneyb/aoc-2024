@@ -62,36 +62,67 @@ fn is_symbol(c: char) -> bool {
 
 fn neighbors(num: &Num) -> Neighbors {
     let (_, x1, x2, y) = *num;
-    let mut neighbors = Vec::new();
-    let min_x = if x1 > 0 {
-        neighbors.push(((x1 - 1), y));
-        x1 - 1
-    } else {
-        x1
-    };
-    if y > 0 {
-        (min_x..=(x2 + 1))
-            .map(|x| (x, y - 1))
-            .for_each(|p| neighbors.push(p));
-    }
-    neighbors.push(((x2 + 1), y));
-    (min_x..=(x2 + 1))
-        .map(|x| (x, y + 1))
-        .for_each(|p| neighbors.push(p));
+    let left_edge = x1 == 0;
+    let x1 = if left_edge { x1 } else { x1 - 1 };
     Neighbors {
-        itr: neighbors.into_iter(),
+        x1,
+        x2,
+        y,
+        curr: if left_edge {
+            if y == 0 {
+                // start on right
+                Some((x2 + 1, y))
+            } else {
+                // start above first digit
+                Some((x1, y - 1))
+            }
+        } else {
+            // start on left
+            Some((x1, y))
+        },
     }
 }
 
 struct Neighbors {
-    itr: std::vec::IntoIter<Point>,
+    x1: usize,
+    x2: usize,
+    y: usize,
+    curr: Option<Point>,
 }
 
 impl Iterator for Neighbors {
     type Item = Point;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.itr.next()
+        let curr = self.curr.take();
+        if let Some(p) = &curr {
+            let (x, y) = *p;
+            self.curr = if y == self.y {
+                // on the number's row
+                Some(if x == self.x1 {
+                    // left of number
+                    if y > 0 {
+                        (x, y - 1)
+                    } else {
+                        (self.x2 + 1, y)
+                    }
+                } else {
+                    // right of number
+                    (x, y + 1)
+                })
+            } else if y < self.y {
+                // above the number
+                Some(if x <= self.x2 { (x + 1, y) } else { (x, y + 1) })
+            } else {
+                // below the number
+                if x > self.x1 {
+                    Some((x - 1, y))
+                } else {
+                    None
+                }
+            };
+        }
+        curr
     }
 }
 

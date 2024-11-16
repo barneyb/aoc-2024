@@ -64,7 +64,7 @@ for i, e in enumerate(puzzle.examples, start=1):
     if e.answer_b:
         has_part_two = True
         asserts += f"""
-        assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
+        // assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
     example_tests += f"""
     #[test]
     fn example_{i}() {{
@@ -90,7 +90,6 @@ print(
 print("-" * 80)
 print()
 
-p2p = "" if has_part_two else "// "
 params = dict(
     year=year,
     yyear=yyear,
@@ -103,11 +102,10 @@ params = dict(
         assert_eq!(3, part_one("AoC"));
     }}
 
-    {p2p}#[test]
-    {p2p}fn test_part_two() {{
-    {p2p}    assert_eq!(12, part_two("adventofcode"));
-    {p2p}}}""",
-    p2p=p2p,
+    // #[test]
+    // fn test_part_two() {{
+    //     assert_eq!(12, part_two("adventofcode"));
+    // }}""",
 )
 
 year_filename = f"./src/{yyear}.rs"
@@ -126,15 +124,16 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
 fn part_one(input: &str) -> usize {
     input.len()
 }
 
-${p2p}fn part_two(input: &str) -> usize {
-${p2p}    input.len()
-${p2p}}
+// fn part_two(input: &str) -> usize {
+//     input.len()
+// }
 
 #[cfg(test)]
 mod test {

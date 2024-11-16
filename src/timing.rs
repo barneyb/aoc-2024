@@ -16,6 +16,9 @@
 //! There are also [run](Timing::run) and [apply](Timing::apply) helpers which
 //! accept a procedure and a function respectively, and wrap them with
 //! [enter](Timing::enter) and [exit](Timing::exit) calls.
+//!
+//! Finally, there is [ad_hoc](Timing::ad_hoc) for, shockingly, ad hoc use. Pass
+//! it a label and procedure, it'll print timing to STDOUT.
 #![allow(dead_code)]
 use std::cell::Cell;
 use std::time::{Duration, Instant};
@@ -25,6 +28,27 @@ pub struct Timing {
     count: Cell<usize>,
     time: Cell<Duration>,
     start: Cell<Option<Instant>>,
+}
+
+impl Timing {
+    /// Run the passed procedure inside an ephemeral `Timing`, and print total
+    /// time to STDOUT. The example in the [module-level documentation](self)
+    /// can be rewritten:
+    ///
+    /// ```
+    /// # use aoc::timing::Timing;
+    /// # fn calc_of_interest() {}
+    /// Timing::ad_hoc("calc", calc_of_interest);
+    /// // prints "calc: 585.666µs"
+    /// ```
+    pub fn ad_hoc<W>(label: &str, procedure: W)
+    where
+        W: FnOnce() -> (),
+    {
+        let t = Timing::default();
+        t.run(procedure);
+        println!("{label}: {:?}", t.total_time());
+    }
 }
 
 impl Timing {
@@ -56,7 +80,6 @@ impl Timing {
     /// t.run(calc_of_interest);
     /// assert_eq!(1, t.exit_count());
     /// ```
-    ///
     pub fn run<W>(&self, procedure: W)
     where
         W: FnOnce() -> (),

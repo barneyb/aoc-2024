@@ -6,14 +6,21 @@ use std::sync::mpsc::Sender;
 // numbers are never adjacent to multiple symbols
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let schematic = parse(input);
+    tx.send(Part::Other("parse".to_string())).unwrap();
     tx.send(Part::A(part_one(&schematic).to_string())).unwrap();
     tx.send(Part::B(part_two(&schematic).to_string())).unwrap();
+    let graph = parse_graph(input);
+    tx.send(Part::Other("graph".to_string())).unwrap();
+    tx.send(Part::A(part_one_graph(&graph).to_string()))
+        .unwrap();
+    tx.send(Part::B(part_two_graph(&graph).to_string()))
+        .unwrap();
 }
 
-// number, start x, end x, y
+/// number, start x, end x, y
 type Num = (usize, usize, usize, usize);
 
-// x, y
+/// x, y
 type Point = (usize, usize);
 
 #[derive(Debug, Eq, PartialEq)]
@@ -52,6 +59,32 @@ fn parse(input: &str) -> Schematic {
         }
     }
     Schematic { nums, symbols }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+enum Node {
+    Num(Num),
+    Symbol(Point, char),
+}
+
+type Graph = HashMap<Node, Vec<Node>>;
+
+fn parse_graph(input: &str) -> Graph {
+    let Schematic { nums, symbols } = parse(input);
+    let mut graph: Graph = HashMap::new();
+    for num in nums {
+        if let Some(sp) = neighbors(&num).find(|p| symbols.contains_key(&p)) {
+            let nn = Node::Num(num);
+            let sn = Node::Symbol(sp, *symbols.get(&sp).unwrap());
+            if let Some(adj) = graph.get_mut(&sn) {
+                adj.push(nn.clone());
+            } else {
+                graph.insert(sn.clone(), vec![nn.clone()]);
+            }
+            graph.insert(nn, Vec::from([sn]));
+        }
+    }
+    graph
 }
 
 fn part_one(schematic: &Schematic) -> usize {
@@ -143,6 +176,18 @@ impl Iterator for Neighbors {
     }
 }
 
+fn part_one_graph(graph: &Graph) -> usize {
+    let mut sum = 0;
+    for (node, adj) in graph {
+        if !adj.is_empty() {
+            if let Node::Num((n, ..)) = node {
+                sum += n;
+            }
+        }
+    }
+    sum
+}
+
 fn part_two(schematic: &Schematic) -> usize {
     let Schematic { nums, symbols } = schematic;
     let mut firsts = HashMap::new();
@@ -154,6 +199,27 @@ fn part_two(schematic: &Schematic) -> usize {
                 sum += n * f;
             } else {
                 firsts.insert(p, *n);
+            }
+        }
+    }
+    sum
+}
+
+fn part_two_graph(graph: &Graph) -> usize {
+    let mut sum = 0;
+    for (node, adj) in graph {
+        if let Node::Symbol(_, '*') = node {
+            if adj.len() == 2 {
+                sum += adj
+                    .iter()
+                    .map(|nn| {
+                        if let Node::Num((n, ..)) = nn {
+                            *n
+                        } else {
+                            panic!("Symbol {node:?} is adjacent to non-number {nn:?}?!")
+                        }
+                    })
+                    .product::<usize>();
             }
         }
     }

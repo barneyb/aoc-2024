@@ -2,15 +2,27 @@ use crate::Part;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
+// numbers are never adjacent to each other
+// numbers are never adjacent to multiple symbols
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap();
+    let schematic = parse(input);
+    tx.send(Part::A(part_one(&schematic).to_string())).unwrap();
+    tx.send(Part::B(part_two(&schematic).to_string())).unwrap();
 }
 
 // number, start x, end x, y
 type Num = (usize, usize, usize, usize);
+
+// x, y
 type Point = (usize, usize);
 
-fn part_one(input: &str) -> usize {
+#[derive(Debug, Eq, PartialEq)]
+struct Schematic {
+    nums: Vec<Num>,
+    symbols: HashMap<Point, char>,
+}
+
+fn parse(input: &str) -> Schematic {
     let grid: Vec<Vec<char>> = input.lines().map(|l| l.chars().collect()).collect();
     let mut nums: Vec<Num> = Vec::new();
     let mut symbols: HashMap<Point, char> = HashMap::new();
@@ -39,6 +51,11 @@ fn part_one(input: &str) -> usize {
             curr = None;
         }
     }
+    Schematic { nums, symbols }
+}
+
+fn part_one(schematic: &Schematic) -> usize {
+    let Schematic { nums, symbols } = schematic;
     // println!("{nums:?}");
     // println!("{symbols:?}");
     let mut sum = 0;
@@ -126,13 +143,27 @@ impl Iterator for Neighbors {
     }
 }
 
-fn part_two(input: &str) -> usize {
-    input.len()
+fn part_two(schematic: &Schematic) -> usize {
+    let Schematic { nums, symbols } = schematic;
+    let mut firsts = HashMap::new();
+    let mut sum = 0;
+    for num in nums {
+        if let Some(p) = neighbors(&num).find(|p| symbols.get(&p) == Some(&'*')) {
+            let (n, ..) = num;
+            if let Some(f) = firsts.get(&p) {
+                sum += n * f;
+            } else {
+                firsts.insert(p, *n);
+            }
+        }
+    }
+    sum
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use lazy_static::lazy_static;
 
     const EXAMPLE_1: &str = r#"467..114..
 ...*......
@@ -145,10 +176,39 @@ mod test {
 ...$.*....
 .664.598.."#;
 
+    lazy_static! {
+        static ref SCHEMATIC_1: Schematic = Schematic {
+            nums: vec![
+                (467, 0, 2, 0),
+                (114, 5, 7, 0),
+                (35, 2, 3, 2),
+                (633, 7, 9, 2),
+                (617, 0, 2, 4),
+                (58, 7, 8, 5),
+                (592, 2, 4, 6),
+                (755, 6, 8, 7),
+                (664, 1, 3, 9),
+                (598, 5, 7, 9)
+            ],
+            symbols: HashMap::from([
+                ((6, 3), '#'),
+                ((3, 4), '*'),
+                ((5, 5), '+'),
+                ((3, 1), '*'),
+                ((3, 8), '$'),
+                ((5, 8), '*')
+            ])
+        };
+    }
+
+    #[test]
+    fn parse_1() {
+        assert_eq!(*SCHEMATIC_1, parse(EXAMPLE_1));
+    }
     #[test]
     fn example_1() {
-        assert_eq!(r"4361", part_one(EXAMPLE_1).to_string());
-        // assert_eq!(r"467835", part_two(EXAMPLE_1).to_string());
+        assert_eq!(r"4361", part_one(&*SCHEMATIC_1).to_string());
+        assert_eq!(r"467835", part_two(&*SCHEMATIC_1).to_string());
     }
 
     #[test]

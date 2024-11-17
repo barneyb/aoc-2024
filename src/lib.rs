@@ -8,6 +8,8 @@ use std::{io, thread};
 
 pub mod aocd;
 pub mod block_print;
+#[macro_use]
+pub mod ord;
 pub mod timing;
 pub mod util;
 pub mod y2015;

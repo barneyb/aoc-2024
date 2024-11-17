@@ -1,12 +1,13 @@
 use crate::Part;
 use std::cmp::Ordering;
+use std::fmt::{Display, Formatter};
 use std::sync::mpsc::Sender;
 use Val::*;
 
 pub fn do_solve(vals: &str, tx: Sender<Part>) {
     let packets = parse(vals);
     tx.send(Part::A(part_one(&packets).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(&packets).to_string())).unwrap();
 }
 
 #[derive(Debug)]
@@ -79,6 +80,18 @@ impl Ord for Val {
     }
 }
 
+impl Display for Val {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Int(n) => write!(f, "{n}"),
+            List(kids) => {
+                let kids: Vec<_> = kids.iter().map(|v| v.to_string()).collect();
+                write!(f, "[{}]", kids.join(","))
+            }
+        }
+    }
+}
+
 fn parse(input: &str) -> Vec<Val> {
     input
         .lines()
@@ -99,9 +112,18 @@ fn part_one(packets: &[Val]) -> usize {
     sum
 }
 
-// fn part_two(input: &str) -> usize {
-//     input.len()
-// }
+fn part_two(packets: &[Val]) -> usize {
+    let a: Val = "[[2]]".into();
+    let b: Val = "[[6]]".into();
+    let mut all = Vec::with_capacity(packets.len() + 2);
+    all.push(&a);
+    all.push(&b);
+    all.extend(packets);
+    all.sort_unstable();
+    let a = all.iter().enumerate().find(|(_, v)| ***v == a).unwrap().0;
+    let b = all.iter().enumerate().find(|(_, v)| ***v == b).unwrap().0;
+    (a + 1) * (b + 1) // one-indexed!
+}
 
 #[cfg(test)]
 mod test {
@@ -210,6 +232,20 @@ mod test {
     }
 
     #[test]
+    fn test_partial_cmp() {
+        assert_eq!(Some(Ordering::Less), List(vec![]).partial_cmp(&Int(1)));
+        assert_eq!(Some(Ordering::Greater), Int(1).partial_cmp(&List(vec![])));
+        assert_eq!(
+            Some(Ordering::Less),
+            List(vec![List(vec![])]).partial_cmp(&List(vec![Int(1)]))
+        );
+        assert_eq!(
+            Some(Ordering::Greater),
+            List(vec![Int(1)]).partial_cmp(&List(vec![List(vec![])]))
+        );
+    }
+
+    #[test]
     fn test_cmp_examples() {
         let ps = &*PACKETS_1;
         assert_eq!(Ordering::Less, ps[0].cmp(&ps[1]));
@@ -227,7 +263,7 @@ mod test {
         assert_eq!(1, part_one(&(*PACKETS_1)[0..2]));
         assert_eq!(1, part_one(&(*PACKETS_1)[2..4]));
         assert_eq!(r"13", part_one(&*PACKETS_1).to_string());
-        // assert_eq!(r"140", part_two(EXAMPLE_1).to_string());
+        assert_eq!(r"140", part_two(&*PACKETS_1).to_string());
     }
 
     #[test]

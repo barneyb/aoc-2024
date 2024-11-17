@@ -9,7 +9,7 @@ pub fn do_solve(vals: &str, tx: Sender<Part>) {
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
-#[derive(Debug, Eq, PartialEq, PartialOrd)]
+#[derive(Debug)]
 enum Val {
     Int(u32),
     List(Vec<Val>),
@@ -47,6 +47,20 @@ impl From<&str> for Val {
             }
         }
         curr.pop().unwrap()
+    }
+}
+
+impl Eq for Val {}
+
+impl PartialEq for Val {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
+impl PartialOrd for Val {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 

@@ -51,21 +51,8 @@ impl From<&str> for Val {
     }
 }
 
-impl Eq for Val {}
-
-impl PartialEq for Val {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl PartialOrd for Val {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Val {
+impl_ord!(
+    Val,
     fn cmp(&self, other: &Self) -> Ordering {
         match self {
             Int(left) => match other {
@@ -78,7 +65,7 @@ impl Ord for Val {
             },
         }
     }
-}
+);
 
 impl Display for Val {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

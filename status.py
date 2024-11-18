@@ -33,7 +33,7 @@ def print_status():
     for y in range(2015, end_year + 1):
         row = f" {y} |"
         end_day = min(25, aoc_now.day if y == aoc_now.year else 25)
-        count = 8
+        count = 0
         for d in range(1, end_day + 1):
             if (y, d) in done:
                 count += 1

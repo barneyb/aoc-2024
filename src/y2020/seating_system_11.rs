@@ -2,12 +2,14 @@ use crate::timing::Timing;
 use crate::Part;
 use petgraph::prelude::*;
 use std::collections::{HashMap, HashSet};
+use std::ops::Add;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let map = Timing::ad_hoc("parse", || parse(input));
     tx.send(Part::A(part_one(&map).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    let map = Timing::ad_hoc("parse2", || parse_two(input));
+    tx.send(Part::B(part_two(&map).to_string())).unwrap();
 }
 
 /// x, y
@@ -103,9 +105,72 @@ fn part_one(map: &Map) -> usize {
     }
 }
 
-// fn part_two(input: &str) -> usize {
-//     input.len()
-// }
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+struct Pt(i32, i32);
+
+struct Map2 {
+    adjacent: HashMap<Pt, Vec<Pt>>,
+}
+
+impl Add for Pt {
+    type Output = Pt;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let Pt(x, y) = self;
+        let Pt(dx, dy) = rhs;
+        Pt(x + dx, y + dy)
+    }
+}
+
+fn parse_two(input: &str) -> Map2 {
+    let mut adjacent: HashMap<Pt, Vec<Pt>> = HashMap::new();
+    let grid: Vec<Vec<_>> = input.lines().map(|l| l.chars().collect()).collect();
+    let width = grid[0].len() as i32;
+    let deltas = [Pt(-1, 0), Pt(-1, -1), Pt(0, -1), Pt(1, -1)];
+    for (y, line) in grid.iter().enumerate() {
+        for (x, c) in line.iter().enumerate() {
+            if *c != 'L' {
+                continue;
+            }
+            let u: Pt = Pt(x as i32, y as i32);
+            let mut adj = Vec::new();
+            for d in deltas {
+                let mut v = u + d;
+                while v.0 >= 0 && v.0 < width && v.1 >= 0 {
+                    if let Some(a) = adjacent.get_mut(&v) {
+                        a.push(u);
+                        adj.push(v);
+                        break;
+                    }
+                    v = v + d;
+                }
+            }
+            adjacent.insert(u, adj);
+        }
+    }
+    Map2 { adjacent }
+}
+
+fn part_two(map: &Map2) -> usize {
+    let mut occupied: HashSet<Pt> = HashSet::new();
+    loop {
+        let mut next = HashSet::new();
+        for (p, adj) in map.adjacent.iter() {
+            let count = adj.into_iter().filter(|i| occupied.contains(i)).count();
+            if occupied.contains(p) {
+                if count < 5 {
+                    next.insert(*p);
+                }
+            } else if count == 0 {
+                next.insert(*p);
+            }
+        }
+        if next == occupied {
+            return next.len();
+        }
+        occupied = next;
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -124,9 +189,8 @@ L.LLLLL.LL"#;
 
     #[test]
     fn example_1() {
-        let map = parse(EXAMPLE_1);
-        assert_eq!(r"37", part_one(&map).to_string());
-        // assert_eq!(r"26", part_two(EXAMPLE_1).to_string());
+        assert_eq!(r"37", part_one(&parse(EXAMPLE_1)).to_string());
+        assert_eq!(r"26", part_two(&parse_two(EXAMPLE_1)).to_string());
     }
 
     #[test]

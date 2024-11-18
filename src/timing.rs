@@ -41,13 +41,14 @@ impl Timing {
     /// Timing::ad_hoc("calc", calc_of_interest);
     /// // prints "calc: 585.666µs"
     /// ```
-    pub fn ad_hoc<W>(label: &str, procedure: W)
+    pub fn ad_hoc<W, R>(label: &str, procedure: W) -> R
     where
-        W: FnOnce() -> (),
+        W: FnOnce() -> R,
     {
         let t = Timing::default();
-        t.run(procedure);
+        let r = t.apply(procedure);
         println!("{label}: {:?}", t.total_time());
+        r
     }
 }
 

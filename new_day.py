@@ -40,7 +40,7 @@ start_ref = (
 subprocess.run(
     ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
 )
-subprocess.run(["cargo", "test"], check=True)
+subprocess.run(["cargo", "test", "--profile", "release"], check=True)
 
 print()
 print(f"{year} Day {day}: {puzzle.title}")

@@ -1,4 +1,4 @@
 pub mod a_maze_of_twisty_little_cubicles_13;
 pub mod leonardos_monorail_12;
 mod no_time_for_a_taxicab_01;
-mod radioisotope_thermoelectric_generators_11;
+pub mod radioisotope_thermoelectric_generators_11;

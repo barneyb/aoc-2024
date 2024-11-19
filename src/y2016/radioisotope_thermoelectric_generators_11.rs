@@ -1,8 +1,23 @@
-#![allow(dead_code)]
-use crate::timing::Timing;
+use crate::Part;
 use anyhow::Result;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io::Write;
+use std::sync::mpsc::Sender;
+
+pub fn do_solve(input: &str, tx: Sender<Part>) {
+    let (elements, initial_state) = parse(input);
+    tx.send(Part::A(
+        Solver::new(&elements).solve(initial_state).to_string(),
+    ))
+    .unwrap();
+    let mut elements = elements;
+    elements.push('E');
+    elements.push('D');
+    tx.send(Part::B(
+        Solver::new(&elements).solve(initial_state).to_string(),
+    ))
+    .unwrap();
+}
 
 struct Solver {
     elements: Vec<char>,
@@ -12,8 +27,6 @@ struct Solver {
     bit_size: u8,
     elevator_inc: usize,
     step_inc: usize,
-    t_is_safe: Timing,
-    t_build_neighbors: Timing,
 }
 
 impl Solver {
@@ -36,19 +49,11 @@ impl Solver {
             bit_size,
             elevator_inc: 1 << (bit_size - 2),
             step_inc: 1 << bit_size,
-            t_is_safe: Timing::default(),
-            t_build_neighbors: Timing::default(),
         }
     }
 
     fn solve(&self, initial_state: usize) -> usize {
-        let t_solve = Timing::default();
-        t_solve.enter();
-        // if let Ok(s) = self.draw(initial_state) {
-        //     println!("{s}");
-        // }
         let mut queue = VecDeque::from([initial_state]);
-        let mut enqueued = queue.len();
         let mut visited = HashSet::new();
         let mut neighbors = Vec::new(); // to avoid re-allocating
         while let Some(s) = queue.pop_front() {
@@ -56,39 +61,12 @@ impl Solver {
                 continue;
             }
             if self.is_goal(s) {
-                t_solve.exit();
-                // println!("{}", self.draw(s).unwrap());
-                println!("Enqueued {enqueued} states");
-                println!("Checked  {} distinct states", visited.len());
-                println!(
-                    "{:9} {:>13?} {:?}",
-                    "solve",
-                    t_solve.total_time() - self.t_build_neighbors.total_time(),
-                    t_solve
-                );
-                if !self.t_build_neighbors.is_empty() {
-                    println!(
-                        "{:9} {:>13?} {:?}",
-                        "neighbors",
-                        self.t_build_neighbors.total_time() - self.t_is_safe.total_time(),
-                        self.t_build_neighbors
-                    );
-                }
-                if !self.t_is_safe.is_empty() {
-                    println!(
-                        "{:9} {:>13?} {:?}",
-                        "is_safe",
-                        self.t_is_safe.total_time(),
-                        self.t_is_safe
-                    );
-                }
                 return self.step_count(s);
             }
             neighbors.clear();
             self.build_neighbors(s + self.step_inc, &mut neighbors);
             for &n in neighbors.iter() {
                 queue.push_back(n);
-                enqueued += 1;
             }
         }
         panic!("Failed to find a suitable series of moves.")
@@ -109,79 +87,76 @@ impl Solver {
     }
 
     fn is_safe(&self, state: usize) -> bool {
-        self.t_is_safe.apply(|| {
-            // For each element, record what floor its generator is on, and if
-            // it's microchip is detached, what floor it's on.
-            let mut val = state;
-            let mut loose_chips = [false; 4];
-            let mut generators = [false; 4];
-            for _ in 0..self.element_count {
-                let m = val & 0b11;
-                val >>= 2;
-                let g = val & 0b11;
-                val >>= 2;
-                if loose_chips[g] {
-                    // loose chip w/ this generator
-                    return false;
-                }
-                if m == g {
-                    // same floor; microchip is safe
-                    generators[g] = true;
-                } else if generators[m] {
-                    // alone w/ another element's generator
-                    return false;
-                } else {
-                    generators[g] = true;
-                    loose_chips[m] = true;
-                }
+        // For each element, record what floor its generator is on, and if
+        // it's microchip is detached, what floor it's on.
+        let mut val = state;
+        let mut loose_chips = [false; 4];
+        let mut generators = [false; 4];
+        for _ in 0..self.element_count {
+            let m = val & 0b11;
+            val >>= 2;
+            let g = val & 0b11;
+            val >>= 2;
+            if loose_chips[g] {
+                // loose chip w/ this generator
+                return false;
             }
-            true
-        })
+            if m == g {
+                // same floor; microchip is safe
+                generators[g] = true;
+            } else if generators[m] {
+                // alone w/ another element's generator
+                return false;
+            } else {
+                generators[g] = true;
+                loose_chips[m] = true;
+            }
+        }
+        true
     }
 
     fn build_neighbors(&self, state: usize, buffer: &mut Vec<usize>) {
-        self.t_build_neighbors.run(|| {
-            let floor = self.current_floor(state);
-            let mut add_next = |next| {
-                if self.is_safe(next) {
-                    buffer.push(next)
+        let floor = self.current_floor(state);
+        let mut add_next = |next| {
+            if self.is_safe(next) {
+                buffer.push(next)
+            }
+        };
+        let mut first = state;
+        for i in 0..self.item_count {
+            if first & 0b11 == floor {
+                let mut up = None;
+                let mut down = None;
+                let delta = (1 << i * 2) + self.elevator_inc;
+                if floor < 0b11 {
+                    let n = state + delta;
+                    add_next(n);
+                    up = Some(n);
                 }
-            };
-            let mut first = state;
-            for i in 0..self.item_count {
-                if first & 0b11 == floor {
-                    let mut up = None;
-                    let mut down = None;
-                    let delta = (1 << i * 2) + self.elevator_inc;
-                    if floor < 0b11 {
-                        let n = state + delta;
-                        add_next(n);
-                        up = Some(n);
-                    }
-                    if floor > 0 {
-                        let n = state - delta;
-                        add_next(n);
-                        down = Some(n);
-                    }
-                    let mut second = first;
-                    for j in (i + 1)..self.item_count {
-                        second >>= 2;
-                        if second & 0b11 == floor {
-                            let delta = 1 << j * 2;
-                            if let Some(n) = up {
-                                add_next(n + delta);
-                            }
-                            if let Some(n) = down {
-                                add_next(n - delta);
-                            }
+                if floor > 0 {
+                    let n = state - delta;
+                    add_next(n);
+                    down = Some(n);
+                }
+                let mut second = first;
+                for j in (i + 1)..self.item_count {
+                    second >>= 2;
+                    if second & 0b11 == floor {
+                        let delta = 1 << j * 2;
+                        if let Some(n) = up {
+                            add_next(n + delta);
+                        }
+                        if let Some(n) = down {
+                            add_next(n - delta);
                         }
                     }
                 }
-                first >>= 2;
             }
-        });
+            first >>= 2;
+        }
     }
 
+    #[allow(dead_code)]
     fn draw(&self, state: usize) -> Result<String> {
         let mut s = Vec::new();
         let mut chips = Vec::new();
@@ -219,7 +194,7 @@ fn parse(input: &str) -> (String, usize) {
     // four bits per element, right-aligned, microchip on right
     // two bits for the elevator
     // rest is steps
-    // //    steps eE LgLm HgHm
+    //       steps eE LgLm HgHm
     // (2, 0b00000_00_1000_0100)
     let mut offsets = HashMap::new();
     let mut elements = String::new();
@@ -232,14 +207,6 @@ fn parse(input: &str) -> (String, usize) {
                 &"generator" => (words[i - 1], 2),
                 _ => continue,
             };
-            // println!(
-            //     "F{floor}: {element} {}",
-            //     if offset == 0 {
-            //         "microchip"
-            //     } else {
-            //         "generator"
-            //     }
-            // );
             // the actual value, just-inserted or preexisting
             let i = if let Some(&i) = offsets.get(element) {
                 i
@@ -260,13 +227,6 @@ fn parse(input: &str) -> (String, usize) {
     }
     (elements, state)
 }
-
-// pub fn part_two(input: &str) -> usize {
-//     let (mut elements, initial_state) = parse(input);
-//     elements.push('E');
-//     elements.push('D');
-//     Solver::new(&elements).solve(initial_state)
-// }
 
 #[cfg(test)]
 mod test {
@@ -367,37 +327,6 @@ F1 E  .  HM .  LM
 
     #[test]
     fn test_real_input() {
-        use crate::{with_input, Part};
-        with_input(2016, 11, |input, tx| {
-            let (elements, initial_state) = parse(input);
-            tx.send(Part::A(
-                Solver::new(&elements).solve(initial_state).to_string(),
-            ))
-            .unwrap();
-            /*
-            Enqueued 32465261 states
-            Checked  6042452 distinct states
-            solve     18.506684709s Timing { count: Cell { value: 1 }, time: Cell { value: 18.506684709s }, start: Cell { value: None } }
-            neighbors           0ns Timing { count: Cell { value: 0 }, time: Cell { value: 0ns }, start: Cell { value: None } }
-            is_safe             0ns Timing { count: Cell { value: 0 }, time: Cell { value: 0ns }, start: Cell { value: None } }
-            Verified B[55]
-                 Part B:           55 (18.507729042s)
-            Enqueued 32465261 states
-            Checked  6042452 distinct states
-            solve     11.530202504s Timing { count: Cell { value: 1 }, time: Cell { value: 25.281575042s }, start: Cell { value: None } }
-            neighbors  5.944627512s Timing { count: Cell { value: 6042451 }, time: Cell { value: 13.751372538s }, start: Cell { value: None } }
-            is_safe    7.806745026s Timing { count: Cell { value: 98091478 }, time: Cell { value: 7.806745026s }, start: Cell { value: None } }
-            Verified B[55]
-                 Part B:           55 (25.282657042s)
-                 */
-            // let mut elements = elements;
-            // elements.push('E');
-            // elements.push('D');
-            // tx.send(Part::B(Box::new(
-            //     Solver::new(&elements).solve(initial_state),
-            // )))
-            // .unwrap();
-        })
-        .unwrap();
+        crate::with_input(2016, 11, do_solve).unwrap();
     }
 }

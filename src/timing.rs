@@ -16,6 +16,9 @@
 //! There are also [run](Timing::run) and [apply](Timing::apply) helpers which
 //! accept a procedure and a function respectively, and wrap them with
 //! [enter](Timing::enter) and [exit](Timing::exit) calls.
+//!
+//! Finally, there is [ad_hoc](Timing::ad_hoc) for, shockingly, ad hoc use. Pass
+//! it a label and procedure, it'll print timing to STDOUT.
 #![allow(dead_code)]
 use std::cell::Cell;
 use std::time::{Duration, Instant};
@@ -25,6 +28,28 @@ pub struct Timing {
     count: Cell<usize>,
     time: Cell<Duration>,
     start: Cell<Option<Instant>>,
+}
+
+impl Timing {
+    /// Run the passed procedure inside an ephemeral `Timing`, and print total
+    /// time to STDOUT. The example in the [module-level documentation](self)
+    /// can be rewritten:
+    ///
+    /// ```
+    /// # use aoc::timing::Timing;
+    /// # fn calc_of_interest() {}
+    /// Timing::ad_hoc("calc", calc_of_interest);
+    /// // prints "calc: 585.666µs"
+    /// ```
+    pub fn ad_hoc<W, R>(label: &str, procedure: W) -> R
+    where
+        W: FnOnce() -> R,
+    {
+        let t = Timing::default();
+        let r = t.apply(procedure);
+        println!("{label}: {:?}", t.total_time());
+        r
+    }
 }
 
 impl Timing {
@@ -56,7 +81,6 @@ impl Timing {
     /// t.run(calc_of_interest);
     /// assert_eq!(1, t.exit_count());
     /// ```
-    ///
     pub fn run<W>(&self, procedure: W)
     where
         W: FnOnce() -> (),
@@ -151,20 +175,22 @@ mod timing_tests {
     #[test]
     fn total_time() {
         let t = Timing::default();
-        t.run(|| thread::sleep(Duration::from_millis(10)));
-        t.run(|| thread::sleep(Duration::from_millis(20)));
-        assert!(t.total_time() > Duration::from_millis(30));
+        t.run(|| thread::sleep(Duration::from_millis(100)));
+        t.run(|| thread::sleep(Duration::from_millis(200)));
+        println!("total time: {:?}", t.total_time());
+        assert!(t.total_time() > Duration::from_millis(300));
         // this _could_ flake, but hopefully not
-        assert!(t.total_time() < Duration::from_millis(40));
+        assert!(t.total_time() < Duration::from_millis(400));
     }
 
     #[test]
     fn average_time() {
         let t = Timing::default();
-        t.run(|| thread::sleep(Duration::from_millis(10)));
-        t.run(|| thread::sleep(Duration::from_millis(20)));
-        assert!(t.average_time() > Duration::from_millis(15));
+        t.run(|| thread::sleep(Duration::from_millis(100)));
+        t.run(|| thread::sleep(Duration::from_millis(200)));
+        println!("average time: {:?}", t.average_time());
+        assert!(t.average_time() > Duration::from_millis(150));
         // this _could_ flake, but hopefully not
-        assert!(t.average_time() < Duration::from_millis(20));
+        assert!(t.average_time() < Duration::from_millis(200));
     }
 }

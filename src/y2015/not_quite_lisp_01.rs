@@ -1,3 +1,6 @@
+use crate::Part;
+use std::sync::mpsc::Sender;
+
 pub fn part_one(input: &str) -> i32 {
     input.chars().fold(0, |f, c| match c {
         '(' => f + 1,
@@ -21,7 +24,7 @@ pub fn part_two(input: &str) -> usize {
     panic!("never entered basement?!")
 }
 
-pub fn both_parts(input: &str) -> (i32, usize) {
+pub fn both_parts(input: &str, tx: Sender<Part>) -> (i32, usize) {
     let mut f = 0;
     let mut entered_basement = None;
     for (i, c) in input.chars().enumerate() {
@@ -31,9 +34,12 @@ pub fn both_parts(input: &str) -> (i32, usize) {
             _ => f,
         };
         if f == -1 && entered_basement.is_none() {
-            entered_basement = Some(i + 1);
+            let eb = i + 1;
+            entered_basement = Some(eb);
+            tx.send(Part::B(eb.to_string())).unwrap();
         }
     }
+    tx.send(Part::A(f.to_string())).unwrap();
     (f, entered_basement.expect("Should have entered basement"))
 }
 
@@ -56,19 +62,17 @@ mod test {
     fn test_real_input() {
         use crate::{with_input, Part};
         with_input(2015, 1, |input, tx| {
-            tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-            tx.send(Part::B(Box::new(part_two(input)))).unwrap();
+            tx.send(Part::A(part_one(input).to_string())).unwrap();
+            tx.send(Part::B(part_two(input).to_string())).unwrap();
         })
         .unwrap();
     }
 
     #[test]
     fn test_real_input_as_one() {
-        use crate::{with_input, Part};
+        use crate::with_input;
         with_input(2015, 1, |input, tx| {
-            let (a, b) = both_parts(input);
-            tx.send(Part::A(Box::new(a))).unwrap();
-            tx.send(Part::B(Box::new(b))).unwrap();
+            both_parts(input, tx);
         })
         .unwrap();
     }

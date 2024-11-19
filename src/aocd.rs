@@ -2,7 +2,8 @@ use crate::Part;
 use std::io::{self, Write};
 use std::process::Command;
 
-pub(crate) fn get_input(year: u32, day: u8) -> io::Result<String> {
+/// Returns a `Result` with the given year/day pair's input as a `String`.
+pub fn get_input(year: u32, day: u8) -> io::Result<String> {
     let output = Command::new("aocd")
         .arg(year.to_string())
         .arg(day.to_string())

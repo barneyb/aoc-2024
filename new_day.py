@@ -1,47 +1,137 @@
+#!/usr/bin/env python
 import datetime
 import re
 import subprocess
 import sys
 from string import Template
 from zoneinfo import ZoneInfo
+
 from aocd.models import Puzzle
+
 AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
-day = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.day
-year = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.year
+year = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.year
+day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
+if year < day:
+    (year, day) = (day, year)
+yyear = f"y{year}"
+zday = str(day) if day >= 10 else f"0{day}"
 puzzle = Puzzle(year=year, day=day)
-print(f"\nInput for {year} Day {day}:\n---------------------\n{puzzle.input_data}\n")
+name = puzzle.title.lower()
+name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
+name = re.sub("[^a-z0-9]+", "_", name)
+name = name.strip("_")
+print(f"{year} Day {day}: {puzzle.title}")
 
-params = dict(
-    year = year,
-    yyear = f"y{year}",
-    day = day,
-    zday = str(day) if day >= 10 else f"0{day}",
-    name = re.sub("[^a-z0-9]+", "_", puzzle.title.lower()),
-)
-
-print(params)
-
+# first, verify we're ready to start a new day...
 if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
     subprocess.run(["git", "commit", "-am", "WIP"], check=True)
 
 subprocess.run(["git", "fetch"], check=True)
 # if master is at/after origin/master, use master, otherwise use origin/master
-start_ref ="master" if subprocess.run(["git", "merge-base", "--is-ancestor", "origin/master", "master"]).returncode == 0 else "origin/master"
-subprocess.run(["git", "checkout", "-b", f"{year}/{day}", "--no-track", start_ref], check=True)
+start_ref = (
+    "master"
+    if subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "origin/master", "master"]
+    ).returncode
+    == 0
+    else "origin/master"
+)
+subprocess.run(
+    ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
+)
+subprocess.run(["cargo", "test", "--profile", "release"], check=True)
 
-year_filename = f"./src/{params['yyear']}.rs"
+print()
+print(f"{year} Day {day}: {puzzle.title}")
+print()
+
+example_tests = ""
+has_part_two = False
+for i, e in enumerate(puzzle.examples, start=1):
+    example_tests += f"""
+    const EXAMPLE_{i}: &str = r#"{e.input_data}"#;\n"""
+for i, e in enumerate(puzzle.examples, start=1):
+    asserts = ""
+    if e.extra:
+        asserts = f"""
+        /*
+         {e.extra}
+         */"""
+    if e.answer_a:
+        asserts += f"""
+        assert_eq!(r"{e.answer_a}", part_one(EXAMPLE_{i}).to_string());"""
+    if e.answer_b:
+        has_part_two = True
+        asserts += f"""
+        // assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
+    example_tests += f"""
+    #[test]
+    fn example_{i}() {{
+        {asserts.strip()}
+    }}\n"""
+    print(f"Example {i}")
+    print("-" * 80)
+    print(e.input_data)
+    print("-" * 80)
+    print(f"Part A: {e.answer_a or '-'}")
+    print(f"Part B: {e.answer_b or '-'}")
+    print("-" * 80)
+    print()
+
+print("Today's Input:")
+print("-" * 80)
+print(f"{puzzle.input_data}")
+print("-" * 80)
+# I'm wc! But terrible!
+print(
+    f"{len(puzzle.input_data.splitlines())} {len(puzzle.input_data.split())} {len(puzzle.input_data)}"
+)
+print("-" * 80)
+print()
+
+params = dict(
+    year=year,
+    yyear=yyear,
+    day=day,
+    zday=zday,
+    name=name,
+    example_tests=example_tests.strip()
+    or f"""#[test]
+    fn test_part_one() {{
+        assert_eq!(3, part_one("AoC"));
+    }}
+
+    // #[test]
+    // fn test_part_two() {{
+    //     assert_eq!(12, part_two("adventofcode"));
+    // }}""",
+)
+
+year_filename = f"./src/{yyear}.rs"
+module_filename = f"./src/{yyear}/{name}_{zday}.rs"
+binary_filename = f"./src/bin/{name}.rs"
+
 with open(year_filename, "a", encoding="utf-8") as f:
-    f.write(f"mod {params['name']}_{params['zday']};\n")
+    f.write(f"pub mod {name}_{zday};\n")
 
-subprocess.run(["mkdir", "-p", f"./src/{params['yyear']}"], check=True)
-module_file_name = f"./src/{params['yyear']}/{params['name']}_{params['zday']}.rs"
-with open(module_file_name, "w", encoding="utf-8") as f:
-    f.write(Template("""pub fn part_one(input: &str) -> usize {
+subprocess.run(["mkdir", "-p", f"./src/{yyear}"], check=True)
+with open(module_filename, "w", encoding="utf-8") as f:
+    f.write(
+        Template(
+            """use crate::Part;
+use std::sync::mpsc::Sender;
+
+pub fn do_solve(input: &str, tx: Sender<Part>) {
+    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+}
+
+fn part_one(input: &str) -> usize {
     input.len()
 }
 
-// pub fn part_two(input: &str) -> usize {
+// fn part_two(input: &str) -> usize {
 //     input.len()
 // }
 
@@ -49,27 +139,35 @@ with open(module_file_name, "w", encoding="utf-8") as f:
 mod test {
     use super::*;
 
-    #[test]
-    fn test_part_one() {
-        assert_eq!(3, part_one("AoC"));
-    }
-
-    // #[test]
-    // fn test_part_two() {
-    //     assert_eq!(12, part_two("adventofcode"));
-    // }
+    $example_tests
 
     // #[test]
     // fn test_real_input() {
-    //     use crate::{with_input, Part};
-    //     with_input($year, $day, |input, tx| {
-    //         tx.send(Part::A(Box::new(part_one(input)))).unwrap();
-    //         // tx.send(Part::B(Box::new(part_two(input)))).unwrap();
-    //     })
-    //     .unwrap();
+    //     crate::with_input($year, $day, do_solve).unwrap();
     // }
 }
-""").substitute(params))
+"""
+        ).substitute(params)
+    )
 
-subprocess.run(["git", "add", year_filename, module_file_name], check=True)
-subprocess.run(["idea", module_file_name])
+with open(binary_filename, "w", encoding="utf-8") as f:
+    f.write(
+        Template(
+            """use aoc::$yyear::${name}_$zday::do_solve;
+use std::io::Error;
+
+fn main() -> Result<(), Error> {
+    aoc::with_input($year, $day, do_solve)
+}
+"""
+        ).substitute(params)
+    )
+
+subprocess.run(["cargo", "run", "--bin", name], check=True)
+subprocess.run(["git", "add", module_filename, binary_filename], check=True)
+day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
+subprocess.run(
+    ["git", "commit", "-am", f"skeleton for {day_spec}: {puzzle.title}"], check=True
+)
+subprocess.run(["idea", binary_filename])
+subprocess.run(["idea", module_filename])

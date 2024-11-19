@@ -1,5 +1,4 @@
-use console::Style;
-use std::fmt::{Display, Formatter};
+use console::{style, Style};
 use std::io::Error;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
@@ -8,29 +7,32 @@ use std::time::{Duration, Instant};
 use std::{io, thread};
 
 pub mod aocd;
+pub mod block_print;
+#[macro_use]
+pub mod ord;
 pub mod timing;
+pub mod util;
 pub mod y2015;
 pub mod y2016;
+pub mod y2017;
+pub mod y2018;
+pub mod y2019;
+pub mod y2020;
+pub mod y2021;
+pub mod y2022;
+pub mod y2023;
+pub mod y2024;
 
-type Ans = Box<dyn Display + Send>;
-
+#[derive(Debug)]
 pub enum Part {
-    A(Ans),
-    B(Ans),
-    Other(Ans),
+    A(String),
+    B(String),
+    Other(String),
 }
 
-impl Display for Part {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let (p, a) = match self {
-            Part::A(a) => ("A", a),
-            Part::B(a) => ("B", a),
-            Part::Other(a) => ("Other", a),
-        };
-        write!(f, "{p}[{a}]")
-    }
-}
-
+/// Invokes the passed `work`, passing it the given year/day/s input as a
+/// `String`, and a `Sender` which accepts [Part]-wrapped answers to be printed
+/// and verified.
 pub fn with_input<S>(year: u32, day: u8, work: S) -> Result<(), Error>
 where
     S: FnOnce(&str, Sender<Part>) -> (),
@@ -50,22 +52,21 @@ where
     });
 
     let input = aocd::get_input(year, day)?;
-    let time = Arc::new(RwLock::new(Instant::now()));
-    let answer_time = time.clone();
     let (solve_tx, solve_rx) = channel();
-    let solve_handle = thread::spawn(move || {
-        {
-            let mut t = time.write().unwrap();
-            *t = Instant::now();
-        }
-        let res = work(input.trim(), solve_tx);
-        res
-    });
+    let time_arc = Arc::new(RwLock::new(Instant::now()));
+    let answer_handle = {
+        let answer_time = time_arc.clone();
+        thread::spawn(move || listen_for_answers(answer_time, solve_rx, print_tx))
+    };
+    {
+        let mut t = time_arc.write().unwrap();
+        *t = Instant::now();
+    }
+    work(input.trim(), solve_tx);
 
-    listen_for_answers(answer_time, solve_rx, print_tx);
-    solve_handle
+    answer_handle
         .join()
-        .expect("Solve thread should have exited cleanly");
+        .expect("Answer thread should have exited cleanly");
     if print_handle
         .join()
         .expect("Print thread should have exited cleanly")
@@ -103,13 +104,10 @@ fn listen_for_answers(
 fn submit(year: u32, day: u8, part: &Part) -> io::Result<bool> {
     if let Part::A(_) | Part::B(_) = part {
         if aocd::submit_answer(year, day, part)? {
-            println!(
-                "{}",
-                Style::new().green().apply_to(format!("Verified {part}"))
-            );
+            println!("{}", style(format!("Verified {part:?}")).green(),);
             Ok(true)
         } else {
-            println!("{}", Style::new().red().apply_to(format!("Failed {part}")));
+            println!("{}", style(format!("Failed {part:?}")).red());
             Ok(false)
         }
     } else {
@@ -154,12 +152,24 @@ impl Print {
             Part::B(a) => (a, pstyle.apply_to("Part B:".to_string())),
             Part::Other(a) => (a, self.other_style.apply_to(format!("Answer {count}:"))),
         };
-        println!(
-            "{:>12} {:>12} {}",
-            self.correct_style.apply_to(lbl),
-            self.ans_style.apply_to(ans),
-            self.time_style.apply_to(format!("({:>12?})", duration))
-        );
+        if ans.contains('\n') {
+            let twelve_spaces = format!(" {:>12}", "");
+            println!(
+                "{:>12}{} {}\n{}{}",
+                self.correct_style.apply_to(lbl),
+                twelve_spaces,
+                self.time_style.apply_to(format!("({:>12?})", duration)),
+                twelve_spaces,
+                ans.replace('\n', &format!("\n{twelve_spaces}"))
+            );
+        } else {
+            println!(
+                "{:>12} {:>12} {}",
+                self.correct_style.apply_to(lbl),
+                self.ans_style.apply_to(ans),
+                self.time_style.apply_to(format!("({:>12?})", duration))
+            );
+        }
         correct
     }
 }

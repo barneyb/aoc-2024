@@ -2,13 +2,14 @@
 import datetime
 import re
 import subprocess
+import sys
 from zoneinfo import ZoneInfo
 
 AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
 
 
-def print_status():
+def print_status(color):
     rust_files = subprocess.run(
         ["find", "src", "-name", "*_*.rs"],
         capture_output=True,
@@ -22,9 +23,9 @@ def print_status():
         m = re.fullmatch(pat, file)
         if m:
             done.add((int(m.group(1)), int(m.group(2))))
-    BOLD = "\033[1m"
-    FAINT = "\033[2m"
-    END = "\033[0m"
+    BOLD = "\033[1m" if color else ""
+    FAINT = "\033[2m" if color else ""
+    END = "\033[0m" if color else ""
     row = "       "
     for d in range(1, 26):
         row += f" {d:2}"
@@ -45,4 +46,4 @@ def print_status():
 
 
 if __name__ == "__main__":
-    print_status()
+    print_status(len(sys.argv) <= 1 or sys.argv[1] != "--no-color")

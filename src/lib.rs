@@ -27,6 +27,7 @@ pub mod y2024;
 pub enum Part {
     A(String),
     B(String),
+    Parse(String),
     Other(String),
 }
 
@@ -119,6 +120,7 @@ struct Print {
     correct_style: Style,
     wrong_style: Style,
     ans_style: Style,
+    parse_style: Style,
     other_style: Style,
     time_style: Style,
     ans_count: AtomicUsize,
@@ -129,6 +131,7 @@ impl Print {
         Print {
             correct_style: Style::new().on_green(),
             wrong_style: Style::new().on_red(),
+            parse_style: Style::new().on_blue(),
             other_style: Style::new().on_yellow(),
             ans_style: Style::new().underlined(),
             time_style: Style::new().dim(),
@@ -141,7 +144,7 @@ impl Print {
         self.ans_count.fetch_add(1, Ordering::SeqCst);
         let count = self.ans_count.load(Ordering::SeqCst);
         let correct =
-            submit(year, day, part).expect("Answer should submitted without error, valid or not.");
+            submit(year, day, part).expect("Answer should submit without error, valid or not.");
         let pstyle = if correct {
             &self.correct_style
         } else {
@@ -150,6 +153,7 @@ impl Print {
         let (ans, lbl) = match part {
             Part::A(a) => (a, pstyle.apply_to("Part A:".to_string())),
             Part::B(a) => (a, pstyle.apply_to("Part B:".to_string())),
+            Part::Parse(a) => (a, self.parse_style.apply_to(format!("Parse:"))),
             Part::Other(a) => (a, self.other_style.apply_to(format!("Answer {count}:"))),
         };
         if ans.contains('\n') {

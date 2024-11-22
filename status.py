@@ -7,6 +7,54 @@ from zoneinfo import ZoneInfo
 
 AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
+MIN_YEAR = 2015
+MAX_YEAR = aoc_now.year if aoc_now.month == 12 else aoc_now.year - 1
+
+
+def last_day_of_year(year):
+    return min(25, aoc_now.day) if year == aoc_now.year else 25
+
+
+def suggest(done):
+    # this year first!
+    if aoc_now.year == MAX_YEAR:
+        for d in range(last_day_of_year(MAX_YEAR), 0, -1):
+            day = MAX_YEAR, d
+            if day not in done:
+                return day
+    total = sum([last_day_of_year(y) for y in range(MIN_YEAR, MAX_YEAR + 1)])
+    if len(done) == total:
+        return None
+    prev = done
+    # flood the grid
+    while True:
+        curr = set(prev)
+        for y, d in prev:
+            if y == MIN_YEAR:
+                if d <= last_day_of_year(MAX_YEAR):
+                    curr.add((MAX_YEAR, d))
+                else:
+                    curr.add((MAX_YEAR - 1, d))
+            else:
+                curr.add((y - 1, d))
+            if y == MAX_YEAR or d > last_day_of_year(y + 1):
+                curr.add((MIN_YEAR, d))
+            else:
+                curr.add((y + 1, d))
+            if d == 1:
+                curr.add((y, last_day_of_year(y)))
+            else:
+                curr.add((y, d - 1))
+            if d == last_day_of_year(y):
+                curr.add((y, 1))
+            else:
+                curr.add((y, d + 1))
+        if len(curr) == total:
+            # it's flooded; find one of the last to be reached
+            last_reached = list(curr - prev)
+            last_reached.sort()
+            return last_reached[0]
+        prev = curr
 
 
 def print_status(color):
@@ -16,7 +64,6 @@ def print_status(color):
         text=True,
         check=True,
     ).stdout
-    end_year = aoc_now.year - (1 if aoc_now.month < 12 else 0)
     done = set()
     pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
     for file in rust_files.strip().splitlines():
@@ -29,20 +76,28 @@ def print_status(color):
     row = "       "
     for d in range(1, 26):
         row += f" {d:2}"
-    print(row + f"  {FAINT}#{END}")
-    print("------+-" + "-" * 25 * 3 + f"{FAINT}---{END}")
-    for y in range(2015, end_year + 1):
+    print(row + f"    {FAINT}#{END}")
+    print("------+-" + "-" * 25 * 3 + f"{FAINT}+----{END}")
+    suggestion = suggest(done)
+    for y in range(MIN_YEAR, MAX_YEAR + 1):
         row = f" {y} |"
-        end_day = min(25, aoc_now.day if y == aoc_now.year else 25)
+        end_day = last_day_of_year(y)
         count = 0
-        for d in range(1, end_day + 1):
-            if (y, d) in done:
+        for d in range(1, 26):
+            if d > end_day:
+                row += "   "
+            elif (y, d) in done:
                 count += 1
                 row += f"  {BOLD}*{END}"
+            elif (y, d) == suggestion:
+                row += f"  {BOLD}?{END}"
             else:
                 row += f"  {FAINT}.{END}"
-        print(f"{row} {FAINT}{count:2}{END}")
-    print("------+-" + "-" * 25 * 3 + f"{FAINT}---{END}")
+        print(f"{row} {FAINT}| {count:2}{END}")
+    print("------+-" + "-" * 25 * 3 + f"{FAINT}+----{END}")
+    if suggestion:
+        (y, d) = suggestion
+        print(f"      Maybe {y} day {d} next?")
 
 
 if __name__ == "__main__":

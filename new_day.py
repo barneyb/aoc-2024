@@ -84,10 +84,13 @@ print("-" * 80)
 print(f"{puzzle.input_data}")
 print("-" * 80)
 # I'm wc! But terrible!
+print("wc input.txt")
 print(
     f"{len(puzzle.input_data.splitlines())} {len(puzzle.input_data.split())} {len(puzzle.input_data)}"
 )
 print("-" * 80)
+print(f"{year} Day {day}: {puzzle.title}")
+print(f"https://adventofcode.com/{year}/day/{day}")
 print()
 
 params = dict(

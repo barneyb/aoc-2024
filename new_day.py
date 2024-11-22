@@ -17,6 +17,7 @@ if year < day:
 yyear = f"y{year}"
 zday = str(day) if day >= 10 else f"0{day}"
 puzzle = Puzzle(year=year, day=day)
+input_data = puzzle.input_data  # do this early, to fail on a bad token
 name = puzzle.title.lower()
 name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
 name = re.sub("[^a-z0-9]+", "_", name)
@@ -81,13 +82,11 @@ for i, e in enumerate(puzzle.examples, start=1):
 
 print("Today's Input:")
 print("-" * 80)
-print(f"{puzzle.input_data}")
+print(f"{input_data}")
 print("-" * 80)
 # I'm wc! But terrible!
 print("wc input.txt")
-print(
-    f"{len(puzzle.input_data.splitlines())} {len(puzzle.input_data.split())} {len(puzzle.input_data)}"
-)
+print(f"{len(input_data.splitlines())} {len(input_data.split())} {len(input_data)}")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title}")
 print(f"https://adventofcode.com/{year}/day/{day}")

@@ -76,11 +76,12 @@ def print_status(color):
     row = "       "
     for d in range(1, 26):
         row += f" {d:2}"
-    print(row + f"    {FAINT}#{END}")
-    print("------+-" + "-" * 25 * 3 + f"{FAINT}+----{END}")
+    print(row + f" {FAINT}│   #{END}")
+    print(FAINT + "──────┬─" + "─" * 25 * 3 + f"┼─────{END}")
     suggestion = suggest(done)
+    total_count = 0
     for y in range(MIN_YEAR, MAX_YEAR + 1):
-        row = f" {y} |"
+        row = f" {y} {FAINT}│{END}"
         end_day = last_day_of_year(y)
         count = 0
         for d in range(1, 26):
@@ -93,11 +94,13 @@ def print_status(color):
                 row += f"  {BOLD}?{END}"
             else:
                 row += f"  {FAINT}.{END}"
-        print(f"{row} {FAINT}| {count:2}{END}")
-    print("------+-" + "-" * 25 * 3 + f"{FAINT}+----{END}")
+        total_count += count
+        print(f"{row} {FAINT}│ {count:3}{END}")
+    print(FAINT + "──────┴─" + "─" * 25 * 3 + f"┼─────{END}")
     if suggestion:
         (y, d) = suggestion
-        print(f"      Maybe {y} day {d} next?")
+        sugg = f"Maybe {y} day {d} next?"
+        print(f"      {sugg:77}{FAINT}│ {total_count:3}{END}")
 
 
 if __name__ == "__main__":

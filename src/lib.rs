@@ -63,7 +63,7 @@ where
         let mut t = time_arc.write().unwrap();
         *t = Instant::now();
     }
-    work(input.trim(), solve_tx);
+    work(input.trim_end_matches('\n'), solve_tx);
 
     answer_handle
         .join()

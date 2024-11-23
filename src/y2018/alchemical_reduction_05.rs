@@ -2,12 +2,29 @@ use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
 fn part_one(input: &str) -> usize {
-    99999
+    let mut chars: Vec<_> = input.chars().collect();
+    let mut i = chars.len() - 1;
+    while i > 0 {
+        i -= 1;
+        let a = chars[i];
+        let b = chars[i + 1];
+        if if a.is_ascii_uppercase() {
+            b == a.to_ascii_lowercase()
+        } else {
+            b == a.to_ascii_uppercase()
+        } {
+            chars.drain(i..=i + 1);
+            if i >= chars.len() && i > 0 {
+                i -= 1;
+            }
+        }
+    }
+    chars.len()
 }
 
 // fn part_two(input: &str) -> usize {
@@ -54,8 +71,18 @@ mod test {
         // assert_eq!(r"4", part_two(EXAMPLE_5).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2018, 5, do_solve).unwrap();
-    // }
+    #[test]
+    fn react_twice_at_start() {
+        assert_eq!(2, part_one("aABbxx"));
+    }
+
+    #[test]
+    fn react_twice_at_end() {
+        assert_eq!(2, part_one("xxaABb"));
+    }
+
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2018, 5, do_solve).unwrap();
+    }
 }

@@ -130,11 +130,11 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
 }
 
 fn part_one(input: &str) -> usize {
-    input.len()
+    99999
 }
 
 // fn part_two(input: &str) -> usize {
-//     input.len()
+//     99999
 // }
 
 #[cfg(test)]

@@ -88,7 +88,7 @@ def print_status(color):
             if d > end_day:
                 row += "   "
             elif (y, d) in done:
-                count += 1
+                count += 2  # two stars per day!
                 row += f"  {BOLD}*{END}"
             elif (y, d) == suggestion:
                 row += f"  {BOLD}?{END}"

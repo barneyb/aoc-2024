@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 fn part_one(input: &str) -> usize {
@@ -27,9 +27,14 @@ fn part_one(input: &str) -> usize {
     chars.len()
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(input: &str) -> usize {
+    ('a'..='z')
+        .map(|c| input.replace(&[c, c.to_ascii_uppercase()], ""))
+        .filter(|s| s.len() < input.len())
+        .map(|s| part_one(&s))
+        .min()
+        .unwrap()
+}
 
 #[cfg(test)]
 mod test {
@@ -68,7 +73,7 @@ mod test {
     #[test]
     fn example_5() {
         assert_eq!(r"10", part_one(EXAMPLE_5).to_string());
-        // assert_eq!(r"4", part_two(EXAMPLE_5).to_string());
+        assert_eq!(r"4", part_two(EXAMPLE_5).to_string());
     }
 
     #[test]

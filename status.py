@@ -52,7 +52,9 @@ def suggest(done):
         if len(curr) == total:
             # it's flooded; find one of the last to be reached
             last_reached = list(curr - prev)
-            last_reached.sort()
+            y_factor = 25 / (MAX_YEAR - MIN_YEAR + 1)
+            last_reached.sort(key=lambda yd: (yd[0] - MIN_YEAR) * y_factor + yd[1])
+            print(last_reached)
             return last_reached[0]
         prev = curr
 

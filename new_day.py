@@ -213,11 +213,7 @@ fn main() -> Result<(), Error> {
         ).substitute(params)
     )
 
-fmt_cmd = ["cargo", "fmt"]
-if year != aoc_now.year:
-    # for prior years, fail if ill-formatted
-    fmt_cmd.extend(["--", "--check"])
-subprocess.run(fmt_cmd, check=True)
+subprocess.run(["cargo", "fmt"], check=True)
 subprocess.run(["git", "add", module_filename, binary_filename], check=True)
 day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
 subprocess.run(

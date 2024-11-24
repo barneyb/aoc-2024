@@ -6,6 +6,8 @@ import sys
 from random import Random
 from zoneinfo import ZoneInfo
 
+from aocd.models import Puzzle
+
 AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
 MIN_YEAR = 2015
@@ -125,8 +127,9 @@ def print_status(color):
     print(FAINT + "──────┴─" + "─" * 25 * 3 + f"┼─────{END}")
     if suggestion:
         (y, d) = suggestion
-        sugg = f"Maybe {y} day {d} next?"
-        print(f"      {sugg:77}{FAINT}│ {total_count:3}{END}")
+        puzzle = Puzzle(year=y, day=d)
+        sugg = f"Maybe {puzzle.title}?  adventofcode.com/{y}/day/{d}"
+        print(f"{sugg:^83}{FAINT}│ {total_count:3}{END}")
 
 
 if __name__ == "__main__":

@@ -142,8 +142,7 @@ words = len(input_data.split())
 chars = len(input_data)
 print(f"{lines :8} {words :8} {chars :8} input.txt")
 print("-" * 80)
-print(f"{year} Day {day}: {puzzle.title}")
-print(f"https://adventofcode.com/{year}/day/{day}")
+print(f"{year} Day {day}: {puzzle.title}  |  adventofcode.com/{year}/day/{day}")
 print()
 
 params = dict(

@@ -10,6 +10,7 @@ pub mod aocd;
 pub mod block_print;
 #[macro_use]
 pub mod ord;
+pub mod geom2d;
 pub mod timing;
 pub mod util;
 pub mod y2015;

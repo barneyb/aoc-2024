@@ -1,16 +1,142 @@
 use crate::Part;
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::sync::mpsc::Sender;
+use symbol_table::GlobalSymbol;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    let cookbook = parse(input);
+    tx.send(Part::Parse(cookbook.len().to_string())).unwrap();
+    tx.send(Part::A(part_one(&cookbook).to_string())).unwrap();
+    // tx.send(Part::Other(part_two(&cookbook).to_string())).unwrap();
 }
 
-fn part_one(input: &str) -> usize {
-    99999
+lazy_static! {
+    static ref ORE: GlobalSymbol = "ORE".into();
+    static ref FUEL: GlobalSymbol = "FUEL".into();
 }
 
-// fn part_two(input: &str) -> usize {
+#[derive(Debug, Eq, PartialEq)]
+struct Recipe {
+    ingredients: HashMap<GlobalSymbol, usize>,
+    quantity: usize,
+    name: GlobalSymbol,
+}
+
+impl Recipe {
+    fn new(ingredients: &[(usize, &str)], quantity: usize, name: &str) -> Recipe {
+        let mut ing_map = HashMap::with_capacity(ingredients.len());
+        for &(q, n) in ingredients {
+            ing_map.insert(n.into(), q);
+        }
+        Recipe {
+            ingredients: ing_map,
+            quantity,
+            name: GlobalSymbol::from(name),
+        }
+    }
+}
+
+impl From<&str> for Recipe {
+    fn from(value: &str) -> Self {
+        // 17 NVRVD, 3 JNWZP => 8 VPVL
+        let mut ingredients = Vec::new();
+        let mut output = false;
+        let mut q = None;
+        for w in value.split(' ') {
+            if w == "=>" {
+                output = true
+            } else if let None = q {
+                q = Some(w.parse().unwrap());
+            } else if output {
+                return Recipe::new(&ingredients, q.unwrap(), w);
+            } else {
+                let name = w.trim_end_matches(',');
+                ingredients.push((q.take().unwrap(), name))
+            }
+        }
+        panic!("...hmm")
+    }
+}
+
+type Cookbook = HashMap<GlobalSymbol, Recipe>;
+
+fn parse(input: &str) -> Cookbook {
+    let mut map = HashMap::new();
+    for l in input.lines() {
+        let r: Recipe = l.into();
+        map.insert(r.name, r);
+    }
+    map
+}
+
+struct Solver<'a> {
+    cookbook: &'a Cookbook,
+    pool: HashMap<GlobalSymbol, usize>,
+}
+
+impl<'a> Solver<'a> {
+    fn get_available(&self, name: &GlobalSymbol) -> usize {
+        if let Some(n) = self.pool.get(name) {
+            *n
+        } else {
+            0
+        }
+    }
+
+    fn set_available(&mut self, name: GlobalSymbol, quantity: usize) {
+        if quantity == 0 {
+            self.pool.remove(&name);
+        } else {
+            self.pool.insert(name, quantity);
+        }
+    }
+
+    fn add_available(&mut self, name: GlobalSymbol, quantity: usize) {
+        if quantity > 0 {
+            self.set_available(name, self.get_available(&name) + quantity);
+        }
+    }
+
+    fn ore_needed(&mut self, mut quantity: usize, name: GlobalSymbol) -> usize {
+        let avail = self.get_available(&name);
+        if avail >= quantity {
+            self.set_available(name, avail - quantity);
+            return 0; // already had enough on hand
+        } else if avail > 0 {
+            self.set_available(name, 0);
+            quantity -= avail;
+        }
+        let recipe = self
+            .cookbook
+            .get(&name)
+            .expect(&format!("Unknown '{name}' recipe?!"));
+        let factor = quantity.div_ceil(recipe.quantity);
+        let ore: usize = recipe
+            .ingredients
+            .iter()
+            .map(|(&n, &q)| {
+                if n == *ORE {
+                    return q * factor;
+                }
+                self.ore_needed(q * factor, n)
+            })
+            .sum();
+        let waste = factor * recipe.quantity - quantity;
+        self.add_available(name, waste);
+        ore
+    }
+}
+
+fn part_one(cookbook: &Cookbook) -> usize {
+    Solver {
+        cookbook,
+        pool: HashMap::new(),
+    }
+    .ore_needed(1, *FUEL)
+}
+
+// fn part_two(cookbook: &Cookbook) -> usize {
 //     99999
 // }
 
@@ -32,6 +158,38 @@ mod test {
 5 B, 7 C => 1 BC
 4 C, 1 A => 1 CA
 2 AB, 3 BC, 4 CA => 1 FUEL"#;
+
+    lazy_static! {
+        static ref COOKBOOK_1: Cookbook = {
+            let mut map = HashMap::new();
+            for r in [
+                Recipe::new(&[(10, "ORE")], 10, "A"),
+                Recipe::new(&[(1, "ORE")], 1, "B"),
+                Recipe::new(&[(7, "A"), (1, "B")], 1, "C"),
+                Recipe::new(&[(7, "A"), (1, "C")], 1, "D"),
+                Recipe::new(&[(7, "A"), (1, "D")], 1, "E"),
+                Recipe::new(&[(7, "A"), (1, "E")], 1, "FUEL"),
+            ] {
+                map.insert(r.name, r);
+            }
+            map
+        };
+        static ref COOKBOOK_2: Cookbook = {
+            let mut map = HashMap::new();
+            for r in [
+                Recipe::new(&[(9, "ORE")], 2, "A"),
+                Recipe::new(&[(8, "ORE")], 3, "B"),
+                Recipe::new(&[(7, "ORE")], 5, "C"),
+                Recipe::new(&[(3, "A"), (4, "B")], 1, "AB"),
+                Recipe::new(&[(5, "B"), (7, "C")], 1, "BC"),
+                Recipe::new(&[(4, "C"), (1, "A")], 1, "CA"),
+                Recipe::new(&[(2, "AB"), (3, "BC"), (4, "CA")], 1, "FUEL"),
+            ] {
+                map.insert(r.name, r);
+            }
+            map
+        };
+    }
 
     const EXAMPLE_3: &str = r#"157 ORE => 5 NZVS
 165 ORE => 6 DCFZ
@@ -75,35 +233,45 @@ mod test {
 5 BHXH, 4 VRPVC => 5 LTCX"#;
 
     #[test]
+    fn parse_example_1() {
+        assert_eq!(*COOKBOOK_1, parse(EXAMPLE_1))
+    }
+
+    #[test]
+    fn parse_example_2() {
+        assert_eq!(*COOKBOOK_2, parse(EXAMPLE_2))
+    }
+
+    #[test]
     fn example_1() {
-        assert_eq!(r"31", part_one(EXAMPLE_1).to_string());
+        assert_eq!(r"31", part_one(&*COOKBOOK_1).to_string());
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(r"165", part_one(EXAMPLE_2).to_string());
+        assert_eq!(r"165", part_one(&*COOKBOOK_2).to_string());
     }
 
     #[test]
     fn example_3() {
-        assert_eq!(r"13312", part_one(EXAMPLE_3).to_string());
-        // assert_eq!(r"82892753", part_two(EXAMPLE_3).to_string());
+        assert_eq!(r"13312", part_one(&parse(EXAMPLE_3)).to_string());
+        // assert_eq!(r"82892753", part_two(&parse(EXAMPLE_3)).to_string());
     }
 
     #[test]
     fn example_4() {
-        assert_eq!(r"180697", part_one(EXAMPLE_4).to_string());
-        // assert_eq!(r"5586022", part_two(EXAMPLE_4).to_string());
+        assert_eq!(r"180697", part_one(&parse(EXAMPLE_4)).to_string());
+        // assert_eq!(r"5586022", part_two(&parse(EXAMPLE_4)).to_string());
     }
 
     #[test]
     fn example_5() {
-        assert_eq!(r"2210736", part_one(EXAMPLE_5).to_string());
-        // assert_eq!(r"460664", part_two(EXAMPLE_5).to_string());
+        assert_eq!(r"2210736", part_one(&parse(EXAMPLE_5)).to_string());
+        // assert_eq!(r"460664", part_two(&parse(EXAMPLE_5)).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2019, 14, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2019, 14, do_solve).unwrap();
+    }
 }

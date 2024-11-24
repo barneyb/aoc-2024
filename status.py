@@ -3,6 +3,7 @@ import datetime
 import re
 import subprocess
 import sys
+from random import Random
 from zoneinfo import ZoneInfo
 
 AOC_TZ = ZoneInfo("America/New_York")
@@ -60,13 +61,20 @@ def suggest(done):
                 curr.add((y, d + 1))
         if len(curr) == total:
             # it's flooded; find one of the last to be reached
-            last_reached = list(curr - prev)
+            candidates = list(curr - prev)
             y_factor = 25 / (MAX_YEAR - MIN_YEAR + 1)
-            last_reached.sort(key=lambda yd: (yd[0] - MIN_YEAR) * y_factor + yd[1])
-            return next(
-                filter(lambda yd: no_day_25_unless_complete(yd, done), last_reached),
+            candidates.sort(key=lambda yd: (yd[0] - MIN_YEAR) * y_factor + yd[1])
+            sugg = next(
+                filter(lambda yd: no_day_25_unless_complete(yd, done), candidates),
                 None,
             )
+            if sugg is None:
+                candidates = list(prev - done)
+                Random(hash(done)).shuffle(candidates)
+                sugg = next(
+                    filter(lambda yd: no_day_25_unless_complete(yd, done), candidates)
+                )
+            return sugg
         prev = curr
 
 
@@ -77,14 +85,19 @@ def print_status(color):
         text=True,
         check=True,
     ).stdout
-    done = set()
     pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
-    for file in rust_files.strip().splitlines():
-        m = re.fullmatch(pat, file)
-        if m:
-            done.add((int(m.group(1)), int(m.group(2))))
+    done = frozenset(
+        [
+            (int(m.group(1)), int(m.group(2)))
+            for m in [
+                re.fullmatch(pat, file) for file in rust_files.strip().splitlines()
+            ]
+            if m
+        ]
+    )
     BOLD = "\033[1m" if color else ""
     FAINT = "\033[2m" if color else ""
+    NEGATIVE = "\033[7m" if color else ""
     END = "\033[0m" if color else ""
     row = "       "
     for d in range(1, 26):
@@ -104,7 +117,7 @@ def print_status(color):
                 count += 2  # two stars per day!
                 row += f"  {BOLD}*{END}"
             elif (y, d) == suggestion:
-                row += f"  {BOLD}?{END}"
+                row += f"  {NEGATIVE}*{END}"
             else:
                 row += f"  {FAINT}.{END}"
         total_count += count

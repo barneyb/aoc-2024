@@ -25,6 +25,7 @@ name = name.strip("_")
 print(f"{year} Day {day}: {puzzle.title}")
 
 # first, verify we're ready to start a new day...
+subprocess.run(["cargo", "fmt"], check=True)
 if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
     subprocess.run(["git", "commit", "-am", "WIP"], check=True)
 
@@ -47,12 +48,33 @@ print()
 print(f"{year} Day {day}: {puzzle.title}")
 print()
 
+
+def prefix_lines(prefix, str):
+    """
+    Add a prefix to each line, at the same indent level as the least-indented
+    line in the string. Blank lines are prefixed, but aren't considered when
+    computing the minimum indent.
+
+    I should really be three functions: strip_indent, prefix_lines, and indent.
+
+    :param prefix: The prefix to add to each line of the string.
+    :param str: The string to add the prefix to the lines of.
+    :return: A string with prefixes added.
+    """
+    lines = str.splitlines(True)
+    indent = min([len(l) - len(l.lstrip()) for l in lines if l.strip() != ""])
+    return "".join(
+        [
+            (prefix + l) if l.strip() == "" else (l[0:indent] + prefix + l[indent:])
+            for l in lines
+        ]
+    )
+
+
+example_inputs = ""
 example_tests = ""
-has_part_two = False
 for i, e in enumerate(puzzle.examples, start=1):
-    example_tests += f"""
-    const EXAMPLE_{i}: &str = r#"{e.input_data}"#;\n"""
-for i, e in enumerate(puzzle.examples, start=1):
+    has_part_a = False
     asserts = ""
     if e.extra:
         asserts = f"""
@@ -60,17 +82,20 @@ for i, e in enumerate(puzzle.examples, start=1):
          {e.extra}
          */"""
     if e.answer_a:
+        has_part_a = True
         asserts += f"""
         assert_eq!(r"{e.answer_a}", part_one(EXAMPLE_{i}).to_string());"""
     if e.answer_b:
-        has_part_two = True
         asserts += f"""
         // assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
-    example_tests += f"""
+    example_inputs += f"""
+    const EXAMPLE_{i}: &str = r#"{e.input_data}"#;\n"""
+    tst = f"""
     #[test]
     fn example_{i}() {{
         {asserts.strip()}
     }}\n"""
+    example_tests += tst if has_part_a else prefix_lines("// ", tst)
     print(f"Example {i}")
     print("-" * 80)
     print(e.input_data)
@@ -85,8 +110,11 @@ print("-" * 80)
 print(f"{input_data}")
 print("-" * 80)
 # I'm wc! But terrible!
-print("wc input.txt")
-print(f"{len(input_data.splitlines())} {len(input_data.split())} {len(input_data)}")
+print("$ wc input.txt")
+lines = len(input_data.splitlines())
+words = len(input_data.split())
+chars = len(input_data)
+print(f"{lines :8} {words :8} {chars :8} input.txt")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title}")
 print(f"https://adventofcode.com/{year}/day/{day}")
@@ -98,7 +126,7 @@ params = dict(
     day=day,
     zday=zday,
     name=name,
-    example_tests=example_tests.strip()
+    example_tests=(example_inputs + example_tests).strip()
     or f"""#[test]
     fn test_part_one() {{
         assert_eq!(3, part_one("AoC"));
@@ -120,8 +148,12 @@ with open(year_filename, "a", encoding="utf-8") as f:
 subprocess.run(["mkdir", "-p", f"./src/{yyear}"], check=True)
 with open(module_filename, "w", encoding="utf-8") as f:
     f.write(
-        Template(
-            """use crate::Part;
+        re.sub(
+            "// *\n",
+            "\n",
+            Template(
+                """\
+use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
@@ -129,7 +161,7 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
-fn part_one(input: &str) -> usize {
+fn part_one(_input: &str) -> usize {
     99999
 }
 
@@ -149,13 +181,15 @@ mod test {
     // }
 }
 """
-        ).substitute(params)
+            ).substitute(params),
+        )
     )
 
 with open(binary_filename, "w", encoding="utf-8") as f:
     f.write(
         Template(
-            """use aoc::$yyear::${name}_$zday::do_solve;
+            """\
+use aoc::$yyear::${name}_$zday::do_solve;
 use std::io::Error;
 
 fn main() -> Result<(), Error> {
@@ -165,7 +199,11 @@ fn main() -> Result<(), Error> {
         ).substitute(params)
     )
 
-subprocess.run(["cargo", "run", "--bin", name], check=True)
+fmt_cmd = ["cargo", "fmt"]
+if year != aoc_now.year:
+    # for prior years, fail if ill-formatted
+    fmt_cmd.extend(["--", "--check"])
+subprocess.run(fmt_cmd, check=True)
 subprocess.run(["git", "add", module_filename, binary_filename], check=True)
 day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
 subprocess.run(

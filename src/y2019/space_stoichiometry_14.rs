@@ -8,8 +8,10 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     let cookbook = parse(input);
     tx.send(Part::Parse(cookbook.len().to_string())).unwrap();
     tx.send(Part::A(part_one(&cookbook).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(&cookbook).to_string())).unwrap();
+    tx.send(Part::B(part_two(&cookbook).to_string())).unwrap();
 }
+
+const ONE_TRILLION: usize = 1_000_000_000_000;
 
 lazy_static! {
     static ref ORE: GlobalSymbol = "ORE".into();
@@ -129,16 +131,36 @@ impl<'a> Solver<'a> {
 }
 
 fn part_one(cookbook: &Cookbook) -> usize {
+    ore_for_fuel(cookbook, 1)
+}
+
+fn ore_for_fuel(cookbook: &Cookbook, fuel: usize) -> usize {
     Solver {
         cookbook,
         pool: HashMap::new(),
     }
-    .ore_needed(1, *FUEL)
+    .ore_needed(fuel, *FUEL)
 }
 
-// fn part_two(cookbook: &Cookbook) -> usize {
-//     99999
-// }
+fn part_two(cookbook: &Cookbook) -> usize {
+    let for_one = ore_for_fuel(cookbook, 1);
+    // Divide for floor. Ceiling is double that. Expand by one each direction.
+    let mut lo = ONE_TRILLION / for_one - 1;
+    debug_assert!(ore_for_fuel(cookbook, lo + 1) < ONE_TRILLION);
+    let mut hi = (lo + 1) * 2 + 1;
+    debug_assert!(ore_for_fuel(cookbook, hi) > ONE_TRILLION);
+    // binary search!
+    while lo < hi - 1 {
+        let mid = (lo + hi) / 2;
+        let ore = ore_for_fuel(cookbook, mid);
+        if ore < ONE_TRILLION {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    lo
+}
 
 #[cfg(test)]
 mod test {
@@ -255,19 +277,19 @@ mod test {
     #[test]
     fn example_3() {
         assert_eq!(r"13312", part_one(&parse(EXAMPLE_3)).to_string());
-        // assert_eq!(r"82892753", part_two(&parse(EXAMPLE_3)).to_string());
+        assert_eq!(r"82892753", part_two(&parse(EXAMPLE_3)).to_string());
     }
 
     #[test]
     fn example_4() {
         assert_eq!(r"180697", part_one(&parse(EXAMPLE_4)).to_string());
-        // assert_eq!(r"5586022", part_two(&parse(EXAMPLE_4)).to_string());
+        assert_eq!(r"5586022", part_two(&parse(EXAMPLE_4)).to_string());
     }
 
     #[test]
     fn example_5() {
         assert_eq!(r"2210736", part_one(&parse(EXAMPLE_5)).to_string());
-        // assert_eq!(r"460664", part_two(&parse(EXAMPLE_5)).to_string());
+        assert_eq!(r"460664", part_two(&parse(EXAMPLE_5)).to_string());
     }
 
     #[test]

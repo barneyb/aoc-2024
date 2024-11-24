@@ -36,7 +36,7 @@ def find_dependency_free(yd: YD, done: frozenset[YD]) -> YD:
         yd = queue.pop(0)
         if yd not in known_deps:
             return yd
-        unsatisfied = filter(lambda d: d not in done, known_deps[yd])
+        unsatisfied = [d for d in known_deps[yd] if d not in done]
         if unsatisfied:
             queue.extend(unsatisfied)
             continue

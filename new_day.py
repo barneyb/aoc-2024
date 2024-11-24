@@ -13,7 +13,11 @@ from status import compute_done, suggest
 done = compute_done()
 if len(sys.argv) == 1:
     # use the current suggestion
-    (year, day) = suggest(done)
+    sugg = suggest(done)
+    if not sugg:
+        print("No day is suggested; specify one explicitly.")
+        exit(4)
+    (year, day) = sugg
 else:
     # grab the params, interpret, and error-correct
     year = int(sys.argv[2]) if len(sys.argv) >= 3 else MAX_YEAR

@@ -6,15 +6,31 @@ from string import Template
 
 from aocd.models import Puzzle
 
-from lib import aoc_now
+from lib import aoc_now, last_day_of_year, MAX_YEAR
+from status import compute_done, suggest
 
-year = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.year
-day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
-if year < day:
-    (year, day) = (day, year)
+done = compute_done()
+if len(sys.argv) == 1:
+    # use the current suggestion
+    (year, day) = suggest(done)
+else:
+    # grab the params, interpret, and error-correct
+    year = int(sys.argv[2]) if len(sys.argv) >= 3 else MAX_YEAR
+    day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
+    if year < day:
+        (year, day) = (day, year)
+    if day > 25:
+        print(f"There's no day {day}?!")
+        exit(1)
+    if year == MAX_YEAR and day > last_day_of_year(year):
+        year -= 1
+puzzle = Puzzle(year=year, day=day)
+if (year, day) in done:
+    print(f"You've already done {year} day {day} ({puzzle.title})?!")
+    print("If you really want to do it again, delete the existing code (and branch).")
+    exit(2)
 yyear = f"y{year}"
 zday = str(day) if day >= 10 else f"0{day}"
-puzzle = Puzzle(year=year, day=day)
 input_data = puzzle.input_data  # do this early, to fail on a bad token
 name = puzzle.title.lower()
 name = re.sub("'([dst]|ll|re) ", "\\1 ", name)

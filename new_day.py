@@ -4,6 +4,7 @@ import subprocess
 import sys
 from string import Template
 
+# noinspection PyUnresolvedReferences
 from aocd.models import Puzzle
 
 from lib import aoc_now, last_day_of_year, MAX_YEAR
@@ -24,13 +25,22 @@ else:
         exit(1)
     if year == MAX_YEAR and day > last_day_of_year(year):
         year -= 1
+zday = str(day) if day >= 10 else f"0{day}"
+branch_name = f"{year}/{zday}"
+branch_exists = subprocess.run(
+    ["git", "branch", "--list", branch_name], capture_output=True, text=True, check=True
+).stdout.strip()
 puzzle = Puzzle(year=year, day=day)
 if (year, day) in done:
     print(f"You've already done {year} day {day} ({puzzle.title})?!")
-    print("If you really want to do it again, delete the existing code (and branch).")
+    print(
+        f"To re-initialize, rename/delete the existing module{' (and branch!)' if branch_exists else ''} first."
+    )
     exit(2)
 yyear = f"y{year}"
-zday = str(day) if day >= 10 else f"0{day}"
+if branch_exists:
+    print(f"You already have a '{branch_name}' branch?!")
+    exit(3)
 input_data = puzzle.input_data  # do this early, to fail on a bad token
 name = puzzle.title.lower()
 name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
@@ -38,7 +48,7 @@ name = re.sub("[^a-z0-9]+", "_", name)
 name = name.strip("_")
 print(f"{year} Day {day}: {puzzle.title}")
 
-# first, verify we're ready to start a new day...
+# first, ensure we're ready to start a new day...
 subprocess.run(["cargo", "fmt"], check=True)
 if subprocess.run(["git", "diff", "--exit-code"]).returncode != 0:
     subprocess.run(["git", "commit", "-am", "WIP"], check=True)
@@ -54,7 +64,7 @@ start_ref = (
     else "origin/master"
 )
 subprocess.run(
-    ["git", "checkout", "-b", f"{year}/{zday}", "--no-track", start_ref], check=True
+    ["git", "checkout", "-b", branch_name, "--no-track", start_ref], check=True
 )
 subprocess.run(["cargo", "test", "--profile", "release"], check=True)
 

@@ -3,6 +3,7 @@ import re
 import subprocess
 from random import Random
 
+# noinspection PyUnresolvedReferences
 from aocd.models import Puzzle
 
 from lib import (

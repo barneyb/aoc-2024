@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 type Program = Vec<usize>;
@@ -40,9 +40,19 @@ fn run_for(mut program: Program, idx: usize) -> usize {
     }
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(input: &str) -> usize {
+    let mut program = parse(input);
+    for n in 0..100 {
+        for v in 0..100 {
+            program[1] = n;
+            program[2] = v;
+            if run_for(program.clone(), 0) == 19690720 {
+                return n * 100 + v;
+            }
+        }
+    }
+    panic!("No params gave the right result?!")
+}
 
 #[cfg(test)]
 mod test {
@@ -60,11 +70,6 @@ mod test {
         assert_eq!(6, run_for(parse("2,3,0,3,99"), 3));
         assert_eq!(9801, run_for(parse("2,4,4,5,99,0"), 5));
     }
-
-    // #[test]
-    // fn test_part_two() {
-    //     assert_eq!(12, part_two("adventofcode"));
-    // }
 
     #[test]
     fn test_real_input() {

@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-import datetime
 import re
 import subprocess
 import sys
 from string import Template
-from zoneinfo import ZoneInfo
 
 from aocd.models import Puzzle
 
-AOC_TZ = ZoneInfo("America/New_York")
-aoc_now = datetime.datetime.now(tz=AOC_TZ)
+from lib import aoc_now
+
 year = int(sys.argv[2]) if len(sys.argv) >= 3 else aoc_now.year
 day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
 if year < day:

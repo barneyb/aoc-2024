@@ -1,21 +1,12 @@
 #!/usr/bin/env python
-import datetime
 import re
 import subprocess
 import sys
 from random import Random
-from zoneinfo import ZoneInfo
 
 from aocd.models import Puzzle
 
-AOC_TZ = ZoneInfo("America/New_York")
-aoc_now = datetime.datetime.now(tz=AOC_TZ)
-MIN_YEAR = 2015
-MAX_YEAR = aoc_now.year if aoc_now.month == 12 else aoc_now.year - 1
-
-
-def last_day_of_year(year):
-    return min(25, aoc_now.day) if year == aoc_now.year else 25
+from lib import aoc_now, last_day_of_year, load_deps, MAX_YEAR, MIN_YEAR, YD
 
 
 def no_day_25_unless_complete(yd, done):
@@ -27,7 +18,21 @@ def no_day_25_unless_complete(yd, done):
     return True
 
 
-def suggest(done):
+def find_dependency_free(yd: YD, done: frozenset[YD]) -> YD:
+    known_deps = load_deps()
+    queue = [yd]  # tee-hee
+    while queue:
+        yd = queue.pop(0)
+        if yd not in known_deps:
+            return yd
+        unsatisfied = filter(lambda d: d not in done, known_deps[yd])
+        if unsatisfied:
+            queue.extend(unsatisfied)
+            continue
+        return yd
+
+
+def suggest(done: frozenset[YD]) -> YD:
     # this year first!
     if aoc_now.year == MAX_YEAR:
         for d in range(last_day_of_year(MAX_YEAR), 0, -1):
@@ -76,11 +81,11 @@ def suggest(done):
                 sugg = next(
                     filter(lambda yd: no_day_25_unless_complete(yd, done), candidates)
                 )
-            return sugg
+            return find_dependency_free(sugg, done)
         prev = curr
 
 
-def print_status(color):
+def compute_done() -> frozenset[YD]:
     rust_files = subprocess.run(
         ["find", "src", "-name", "*_*.rs"],
         capture_output=True,
@@ -88,7 +93,7 @@ def print_status(color):
         check=True,
     ).stdout
     pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
-    done = frozenset(
+    return frozenset(
         [
             (int(m.group(1)), int(m.group(2)))
             for m in [
@@ -97,6 +102,10 @@ def print_status(color):
             if m
         ]
     )
+
+
+def print_status(color):
+    done = compute_done()
     BOLD = "\033[1m" if color else ""
     FAINT = "\033[2m" if color else ""
     NEGATIVE = "\033[7m" if color else ""
@@ -129,7 +138,9 @@ def print_status(color):
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)
         sugg = f"Maybe {puzzle.title}?  adventofcode.com/{y}/day/{d}"
-        print(f"{sugg:^83}{FAINT}│ {total_count:3}{END}")
+    else:
+        sugg = ""
+    print(f"{sugg:^83}{FAINT}│ {total_count:3}{END}")
 
 
 if __name__ == "__main__":

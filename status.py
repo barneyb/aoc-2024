@@ -15,6 +15,15 @@ def last_day_of_year(year):
     return min(25, aoc_now.day) if year == aoc_now.year else 25
 
 
+def no_day_25_unless_complete(yd, done):
+    (y, d) = yd
+    if d == 25:
+        for d in range(0, 25):
+            if (y, d) not in done:
+                return False
+    return True
+
+
 def suggest(done):
     # this year first!
     if aoc_now.year == MAX_YEAR:
@@ -54,8 +63,10 @@ def suggest(done):
             last_reached = list(curr - prev)
             y_factor = 25 / (MAX_YEAR - MIN_YEAR + 1)
             last_reached.sort(key=lambda yd: (yd[0] - MIN_YEAR) * y_factor + yd[1])
-            print(last_reached)
-            return last_reached[0]
+            return next(
+                filter(lambda yd: no_day_25_unless_complete(yd, done), last_reached),
+                None,
+            )
         prev = curr
 
 

@@ -1,8 +1,43 @@
 #!/usr/bin/env python
 import sys
 
-from lib import Deps, load_deps, save_deps
+from lib import Deps, END, FAINT, load_deps, save_deps, YD
 from status import compute_done, suggest
+
+ByYear = dict[int, list[(int, bool)]]
+
+
+def gather_deps(yd: YD, known_deps: Deps) -> ByYear:
+    queue = [(yd, False)]  # tee-hee
+    by_year: ByYear = dict()
+    visited = set()
+    while queue:
+        (yd, transitive) = queue.pop(0)
+        if yd not in known_deps:
+            continue
+        deps = list(known_deps[yd])
+        deps.sort()
+        for k in deps:
+            if k in visited:
+                continue
+            visited.add(k)
+            (y, d) = k
+            if y in by_year:
+                by_year[y].append((d, transitive))
+            else:
+                by_year[y] = [(d, transitive)]
+            queue.append(((y, d), True))
+    return by_year
+
+
+def draw_dep_list(this_year, deps_by_year, dep_year):
+    deps = deps_by_year[dep_year]
+    return (
+        (FAINT if deps[0][1] else "")
+        + f"{'     day' if this_year == dep_year else f'{dep_year} day'}{END} "
+        + ", ".join(f"{FAINT}{d:2}" if t else f"{d:2}" for d, t in deps)
+        + END
+    )
 
 
 def print_deps(known_deps: Deps):
@@ -11,24 +46,13 @@ def print_deps(known_deps: Deps):
     keys.sort()
     for k in keys:
         (year, day) = k
-        deps = list(known_deps[k])
-        deps.sort()
-        by_year = dict()
-        for y, d in deps:
-            if y in by_year:
-                by_year[y].append(d)
-            else:
-                by_year[y] = [d]
+        by_year = gather_deps(k, known_deps)
         years = list(by_year)
-        years.sort()
+        years.sort(key=lambda n: -n)
         first_year = years.pop(0)
-        print(
-            f"  {year} day {day:2} -> {'day' if year == first_year else f'{first_year} day'} {', '.join(f'{d}' for d in by_year[first_year])}"
-        )
+        print(f"  {year} day {day:2} -> {draw_dep_list(year, by_year, first_year)}")
         for y in years:
-            print(
-                f"              -> {'     day' if year == y else f'{y} day'} {', '.join(f'{d}' for d in by_year[y])}"
-            )
+            print(f"              -> {draw_dep_list(year, by_year, y)}")
     print()
 
 

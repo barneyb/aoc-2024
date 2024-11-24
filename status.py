@@ -1,12 +1,22 @@
 #!/usr/bin/env python
 import re
 import subprocess
-import sys
 from random import Random
 
 from aocd.models import Puzzle
 
-from lib import aoc_now, last_day_of_year, load_deps, MAX_YEAR, MIN_YEAR, YD
+from lib import (
+    aoc_now,
+    BOLD,
+    END,
+    FAINT,
+    last_day_of_year,
+    load_deps,
+    MAX_YEAR,
+    MIN_YEAR,
+    NEGATIVE,
+    YD,
+)
 
 
 def no_day_25_unless_complete(yd, done):
@@ -104,12 +114,8 @@ def compute_done() -> frozenset[YD]:
     )
 
 
-def print_status(color):
+def print_status():
     done = compute_done()
-    BOLD = "\033[1m" if color else ""
-    FAINT = "\033[2m" if color else ""
-    NEGATIVE = "\033[7m" if color else ""
-    END = "\033[0m" if color else ""
     row = "       "
     for d in range(1, 26):
         row += f" {d:2}"
@@ -137,11 +143,11 @@ def print_status(color):
     if suggestion:
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)
-        sugg = f"Maybe {puzzle.title}?  adventofcode.com/{y}/day/{d}"
+        sugg = f"{puzzle.title}  |  adventofcode.com/{y}/day/{d}"
     else:
         sugg = ""
     print(f"{sugg:^83}{FAINT}│ {total_count:3}{END}")
 
 
 if __name__ == "__main__":
-    print_status(len(sys.argv) <= 1 or sys.argv[1] != "--no-color")
+    print_status()

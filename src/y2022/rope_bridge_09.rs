@@ -1,13 +1,56 @@
+use crate::geom2d::Dir;
 use crate::Part;
+use std::collections::HashSet;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
+type Pt = (i32, i32);
+
 fn part_one(input: &str) -> usize {
-    99999
+    let mut head = (0, 0);
+    let mut tail = (0, 0);
+    let mut visited = HashSet::from([tail]);
+    for line in input.lines() {
+        let dir: Dir = line.into();
+        let n: u32 = line[2..].parse().unwrap();
+        for _ in 0..n {
+            head = step(head, dir);
+            tail = drag(head, tail);
+            visited.insert(tail);
+        }
+    }
+    visited.len()
+}
+
+#[rustfmt::skip]
+fn step(curr: Pt, dir: Dir) -> Pt {
+    let (x, y) = curr;
+    match dir {
+        Dir::North => (x    , y - 1),
+        Dir::East  => (x + 1, y    ),
+        Dir::South => (x    , y + 1),
+        Dir::West  => (x - 1, y    ),
+    }
+}
+
+#[rustfmt::skip]
+fn drag(head: Pt, tail: Pt) -> Pt {
+    let (x, y) = tail;
+    match (x - head.0, y - head.1) {
+        ( 2,  0)            => (x - 1, y    ),
+        (-2,  0)            => (x + 1, y    ),
+        ( 0,  2)            => (x    , y - 1),
+        ( 0, -2)            => (x    , y + 1),
+        ( 1,  2) | ( 2,  1) => (x - 1, y - 1),
+        ( 2, -1) | ( 1, -2) => (x - 1, y + 1),
+        (-2, -1) | (-1, -2) => (x + 1, y + 1),
+        (-1,  2) | (-2,  1) => (x + 1, y - 1),
+        _ => tail,
+    }
 }
 
 // fn part_two(input: &str) -> usize {
@@ -47,8 +90,8 @@ U 20"#;
         // assert_eq!(r"36", part_two(EXAMPLE_2).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2022, 9, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2022, 9, do_solve).unwrap();
+    }
 }

@@ -224,6 +224,7 @@ fn main() -> Result<(), Error> {
     )
 
 subprocess.run(["cargo", "fmt"], check=True)
+subprocess.run(["cargo", "run", "--bin", name], check=True)
 subprocess.run(["git", "add", module_filename, binary_filename], check=True)
 day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
 subprocess.run(

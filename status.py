@@ -97,8 +97,9 @@ def suggest(done: frozenset[YD]) -> YD:
 
 
 def compute_done() -> frozenset[YD]:
+    # only consider files on master, not whatever is checked out
     rust_files = subprocess.run(
-        ["find", "src", "-name", "*_*.rs"],
+        ["git", "ls-tree", "master", "-r", "--name-only", "src"],
         capture_output=True,
         text=True,
         check=True,

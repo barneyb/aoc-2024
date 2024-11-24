@@ -155,12 +155,7 @@ params = dict(
     or f"""#[test]
     fn test_part_one() {{
         assert_eq!(3, part_one("AoC"));
-    }}
-
-    // #[test]
-    // fn test_part_two() {{
-    //     assert_eq!(12, part_two("adventofcode"));
-    // }}""",
+    }}""",
 )
 
 year_filename = f"./src/{yyear}.rs"

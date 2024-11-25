@@ -135,9 +135,10 @@ def suggest_next(done: frozenset[YD] = None) -> YD:
     if len(done) == total:
         return None
     prev = done
+    rounds = []
     # flood the grid
     while True:
-        curr = set(prev)
+        curr = set()
         for y, d in prev:
             if y == MIN_YEAR:
                 if d <= last_day_of_year(MAX_YEAR):
@@ -158,20 +159,20 @@ def suggest_next(done: frozenset[YD] = None) -> YD:
                 curr.add((y, 1))
             else:
                 curr.add((y, d + 1))
+        rounds.append(curr - prev)
+        curr = curr.union(prev)
         if len(curr) == total:
             # it's flooded; find one of the last to be reached
-            candidates = list(curr - prev)
             y_factor = 25 / (MAX_YEAR - MIN_YEAR + 1)
-            candidates.sort(key=lambda yd: (yd[0] - MIN_YEAR) * y_factor + yd[1])
-            sugg = next(
-                filter(lambda yd: no_day_25_unless_complete(yd, done), candidates),
-                None,
-            )
-            if sugg is None:
-                candidates = list(prev - done)
-                Random(hash(done)).shuffle(candidates)
-                sugg = next(
-                    filter(lambda yd: no_day_25_unless_complete(yd, done), candidates)
-                )
-            return find_dependency_free(sugg, done)
+            no_day_25 = lambda yd: no_day_25_unless_complete(yd, done)
+            random = Random(hash(done))
+            rounds.reverse()
+            for candidates in rounds:
+                candidates = list(candidates)
+                random.shuffle(candidates)
+                for c in filter(no_day_25, candidates):
+                    c = find_dependency_free(c, done)
+                    if c is not None:
+                        return c
+            return None
         prev = curr

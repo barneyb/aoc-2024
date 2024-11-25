@@ -3,13 +3,14 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 #[derive(Debug, Default)]
 struct Calculator {
     vals: Vec<usize>,
     ops: Vec<char>,
+    prec: bool,
 }
 
 impl Calculator {
@@ -22,8 +23,15 @@ impl Calculator {
         self.ops.clear();
     }
 
-    fn do_ops(&mut self) {
-        while let Some('+' | '*') = self.ops.last() {
+    fn precedence_enabled(&mut self, prec: bool) {
+        self.prec = prec;
+    }
+
+    fn do_ops(&mut self, before: char) {
+        while let Some(op @ ('+' | '*')) = self.ops.last() {
+            if self.prec && precedence(*op) < precedence(before) {
+                break;
+            }
             let b = self.vals.pop().unwrap();
             let a = self.vals.pop().unwrap();
             self.vals.push(match self.ops.pop() {
@@ -41,27 +49,47 @@ impl Calculator {
                     self.vals.push(c.to_digit(10).unwrap() as usize)
                 }
                 '+' | '*' => {
-                    self.do_ops();
+                    self.do_ops(c);
                     self.ops.push(c);
                 }
                 '(' => self.ops.push(c),
                 ')' => {
-                    self.do_ops();
+                    self.do_ops(c);
                     self.ops.pop(); // the open paren
                 }
                 ' ' => { /* ignore */ }
                 c => panic!("Unexpected '{c}'"),
             }
         }
-        self.do_ops();
+        self.do_ops(')');
         debug_assert_eq!(0, self.ops.len());
         debug_assert_eq!(1, self.vals.len());
         self.vals.pop().unwrap()
     }
 }
 
+fn precedence(op: char) -> usize {
+    match op {
+        '(' => 100,
+        '+' => 80,
+        '*' => 40,
+        ')' => 0,
+        it => panic!("'{it:?}'  isn't a valid operator?!"),
+    }
+}
+
 fn part_one(input: &str) -> usize {
+    let calc = Calculator::new();
+    sum_up(input, calc)
+}
+
+fn part_two(input: &str) -> usize {
     let mut calc = Calculator::new();
+    calc.precedence_enabled(true);
+    sum_up(input, calc)
+}
+
+fn sum_up(input: &str, mut calc: Calculator) -> usize {
     input
         .lines()
         .map(|expr| {
@@ -70,10 +98,6 @@ fn part_one(input: &str) -> usize {
         })
         .sum()
 }
-
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
 
 #[cfg(test)]
 mod test {
@@ -94,37 +118,37 @@ mod test {
     #[test]
     fn example_1() {
         assert_eq!(r"71", part_one(EXAMPLE_1).to_string());
-        // assert_eq!(r"231", part_two(EXAMPLE_1).to_string());
+        assert_eq!(r"231", part_two(EXAMPLE_1).to_string());
     }
 
     #[test]
     fn example_2() {
         assert_eq!(r"51", part_one(EXAMPLE_2).to_string());
-        // assert_eq!(r"51", part_two(EXAMPLE_2).to_string());
+        assert_eq!(r"51", part_two(EXAMPLE_2).to_string());
     }
 
     #[test]
     fn example_3() {
         assert_eq!(r"26", part_one(EXAMPLE_3).to_string());
-        // assert_eq!(r"46", part_two(EXAMPLE_3).to_string());
+        assert_eq!(r"46", part_two(EXAMPLE_3).to_string());
     }
 
     #[test]
     fn example_4() {
         assert_eq!(r"437", part_one(EXAMPLE_4).to_string());
-        // assert_eq!(r"1445", part_two(EXAMPLE_4).to_string());
+        assert_eq!(r"1445", part_two(EXAMPLE_4).to_string());
     }
 
     #[test]
     fn example_5() {
         assert_eq!(r"12240", part_one(EXAMPLE_5).to_string());
-        // assert_eq!(r"669060", part_two(EXAMPLE_5).to_string());
+        assert_eq!(r"669060", part_two(EXAMPLE_5).to_string());
     }
 
     #[test]
     fn example_6() {
         assert_eq!(r"13632", part_one(EXAMPLE_6).to_string());
-        // assert_eq!(r"23340", part_two(EXAMPLE_6).to_string());
+        assert_eq!(r"23340", part_two(EXAMPLE_6).to_string());
     }
 
     #[test]

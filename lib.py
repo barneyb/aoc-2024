@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import re
 import subprocess
 from doctest import master
 from zoneinfo import ZoneInfo
@@ -26,6 +27,14 @@ def current_branch():
         text=True,
         check=True,
     ).stdout.strip()
+
+
+def current_yd():
+    branch = current_branch()
+    if re.match("\d{4}/\d{2}", branch):
+        return tuple(map(int, branch.split("/")))
+    else:
+        return None
 
 
 def load_deps() -> Deps:

@@ -9,6 +9,7 @@ from aocd.models import Puzzle
 from lib import (
     aoc_now,
     BOLD,
+    current_yd,
     END,
     FAINT,
     last_day_of_year,
@@ -136,7 +137,10 @@ def print_status():
                 count += 2  # two stars per day!
                 row += f"  {BOLD}*{END}"
             elif (y, d) == suggestion:
-                row += f"  {NEGATIVE}*{END}"
+                if suggestion == current_yd():
+                    row += f"  {NEGATIVE}*{END}"
+                else:
+                    row += f"  ?"
             else:
                 row += f"  {FAINT}.{END}"
         total_count += count

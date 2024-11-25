@@ -2,12 +2,73 @@ use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
-fn part_one(_input: &str) -> usize {
-    99999
+#[derive(Debug, Default)]
+struct Calculator {
+    vals: Vec<usize>,
+    ops: Vec<char>,
+}
+
+impl Calculator {
+    fn new() -> Calculator {
+        Default::default()
+    }
+
+    fn clear(&mut self) {
+        self.vals.clear();
+        self.ops.clear();
+    }
+
+    fn do_ops(&mut self) {
+        while let Some('+' | '*') = self.ops.last() {
+            let b = self.vals.pop().unwrap();
+            let a = self.vals.pop().unwrap();
+            self.vals.push(match self.ops.pop() {
+                Some('+') => a + b,
+                Some('*') => a * b,
+                it => panic!("what?! an {it:?}?!"),
+            });
+        }
+    }
+
+    fn calculate(&mut self, expr: &str) -> usize {
+        for c in expr.chars() {
+            match c {
+                '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                    self.vals.push(c.to_digit(10).unwrap() as usize)
+                }
+                '+' | '*' => {
+                    self.do_ops();
+                    self.ops.push(c);
+                }
+                '(' => self.ops.push(c),
+                ')' => {
+                    self.do_ops();
+                    self.ops.pop(); // the open paren
+                }
+                ' ' => { /* ignore */ }
+                c => panic!("Unexpected '{c}'"),
+            }
+        }
+        self.do_ops();
+        debug_assert_eq!(0, self.ops.len());
+        debug_assert_eq!(1, self.vals.len());
+        self.vals.pop().unwrap()
+    }
+}
+
+fn part_one(input: &str) -> usize {
+    let mut calc = Calculator::new();
+    input
+        .lines()
+        .map(|expr| {
+            calc.clear();
+            calc.calculate(expr)
+        })
+        .sum()
 }
 
 // fn part_two(input: &str) -> usize {
@@ -66,8 +127,8 @@ mod test {
         // assert_eq!(r"23340", part_two(EXAMPLE_6).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2020, 18, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2020, 18, do_solve).unwrap();
+    }
 }

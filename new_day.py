@@ -7,13 +7,12 @@ from string import Template
 # noinspection PyUnresolvedReferences
 from aocd.models import Puzzle
 
-from lib import aoc_now, last_day_of_year, MAX_YEAR
-from status import compute_done, suggest
+from lib import aoc_now, compute_done, last_day_of_year, MAX_YEAR, suggest_next
 
 done = compute_done()
 if len(sys.argv) == 1:
     # use the current suggestion
-    sugg = suggest(done)
+    sugg = suggest_next(done)
     if not sugg:
         print("No day is suggested; specify one explicitly.")
         exit(4)

@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 from doctest import master
+from random import Random
 from zoneinfo import ZoneInfo
 
 YD = (int, int)
@@ -18,6 +19,26 @@ FAINT = "\033[2m"
 NEGATIVE = "\033[7m"
 END = "\033[0m"
 DEPS_FILE = ".deps.json"
+
+
+def compute_done() -> frozenset[YD]:
+    # only consider files on master, not whatever is checked out
+    rust_files = subprocess.run(
+        ["git", "ls-tree", "master", "-r", "--name-only", "src"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
+    return frozenset(
+        [
+            (int(m.group(1)), int(m.group(2)))
+            for m in [
+                re.fullmatch(pat, file) for file in rust_files.strip().splitlines()
+            ]
+            if m
+        ]
+    )
 
 
 def current_branch():
@@ -35,6 +56,10 @@ def current_yd():
         return tuple(map(int, branch.split("/")))
     else:
         return None
+
+
+def last_day_of_year(year):
+    return min(25, aoc_now.day) if year == aoc_now.year else 25
 
 
 def load_deps() -> Deps:
@@ -74,5 +99,79 @@ def save_deps(deps: Deps):
         subprocess.run(["git", "stash", "pop"], check=True)
 
 
-def last_day_of_year(year):
-    return min(25, aoc_now.day) if year == aoc_now.year else 25
+def no_day_25_unless_complete(yd, done):
+    (y, d) = yd
+    if d == 25:
+        for d in range(0, 25):
+            if (y, d) not in done:
+                return False
+    return True
+
+
+def find_dependency_free(yd: YD, done: frozenset[YD]) -> YD:
+    known_deps = load_deps()
+    queue = [yd]  # tee-hee
+    while queue:
+        yd = queue.pop(0)
+        if yd not in known_deps:
+            return yd
+        unsatisfied = [d for d in known_deps[yd] if d not in done]
+        if unsatisfied:
+            queue.extend(unsatisfied)
+            continue
+        return yd
+
+
+def suggest_next(done: frozenset[YD] = None) -> YD:
+    if done is None:
+        done = compute_done()
+    # this year first!
+    if aoc_now.year == MAX_YEAR:
+        for d in range(last_day_of_year(MAX_YEAR), 0, -1):
+            day = MAX_YEAR, d
+            if day not in done:
+                return day
+    total = sum([last_day_of_year(y) for y in range(MIN_YEAR, MAX_YEAR + 1)])
+    if len(done) == total:
+        return None
+    prev = done
+    # flood the grid
+    while True:
+        curr = set(prev)
+        for y, d in prev:
+            if y == MIN_YEAR:
+                if d <= last_day_of_year(MAX_YEAR):
+                    curr.add((MAX_YEAR, d))
+                else:
+                    curr.add((MAX_YEAR - 1, d))
+            else:
+                curr.add((y - 1, d))
+            if y == MAX_YEAR or d > last_day_of_year(y + 1):
+                curr.add((MIN_YEAR, d))
+            else:
+                curr.add((y + 1, d))
+            if d == 1:
+                curr.add((y, last_day_of_year(y)))
+            else:
+                curr.add((y, d - 1))
+            if d == last_day_of_year(y):
+                curr.add((y, 1))
+            else:
+                curr.add((y, d + 1))
+        if len(curr) == total:
+            # it's flooded; find one of the last to be reached
+            candidates = list(curr - prev)
+            y_factor = 25 / (MAX_YEAR - MIN_YEAR + 1)
+            candidates.sort(key=lambda yd: (yd[0] - MIN_YEAR) * y_factor + yd[1])
+            sugg = next(
+                filter(lambda yd: no_day_25_unless_complete(yd, done), candidates),
+                None,
+            )
+            if sugg is None:
+                candidates = list(prev - done)
+                Random(hash(done)).shuffle(candidates)
+                sugg = next(
+                    filter(lambda yd: no_day_25_unless_complete(yd, done), candidates)
+                )
+            return find_dependency_free(sugg, done)
+        prev = curr

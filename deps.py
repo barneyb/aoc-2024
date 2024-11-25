@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 import sys
 
-from lib import Deps, END, FAINT, load_deps, save_deps, YD
-from status import compute_done, suggest
+from lib import Deps, END, FAINT, load_deps, save_deps, suggest_next, YD
 
 ByYear = dict[int, list[(int, bool)]]
 
@@ -57,8 +56,7 @@ def print_deps(known_deps: Deps):
 
 
 if __name__ == "__main__":
-    done = compute_done()
-    sugg = suggest(done)
+    sugg = suggest_next()
 
     known_deps = load_deps()
     if len(sys.argv) == 1:

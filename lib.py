@@ -4,7 +4,6 @@ import os
 import re
 import subprocess
 from doctest import master
-from random import Random
 from zoneinfo import ZoneInfo
 
 YD = (int, int)
@@ -21,7 +20,7 @@ END = "\033[0m"
 DEPS_FILE = ".deps.json"
 
 
-def compute_done() -> frozenset[YD]:
+def compute_done() -> set[YD]:
     # only consider files on master, not whatever is checked out
     rust_files = subprocess.run(
         ["git", "ls-tree", "master", "-r", "--name-only", "src"],
@@ -30,15 +29,11 @@ def compute_done() -> frozenset[YD]:
         check=True,
     ).stdout
     pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
-    return frozenset(
-        [
-            (int(m.group(1)), int(m.group(2)))
-            for m in [
-                re.fullmatch(pat, file) for file in rust_files.strip().splitlines()
-            ]
-            if m
-        ]
-    )
+    return {
+        (int(m.group(1)), int(m.group(2)))
+        for m in [re.fullmatch(pat, file) for file in rust_files.strip().splitlines()]
+        if m
+    }
 
 
 def current_branch():
@@ -99,13 +94,9 @@ def save_deps(deps: Deps):
         subprocess.run(["git", "stash", "pop"], check=True)
 
 
-def no_day_25_unless_complete(yd, done):
-    (y, d) = yd
-    if d == 25:
-        for d in range(0, 25):
-            if (y, d) not in done:
-                return False
-    return True
+def add_day_25(deps: Deps) -> None:
+    for y in range(MIN_YEAR, MAX_YEAR + 1):
+        deps[(y, 25)] = {(y, d) for d in range(1, 25)}
 
 
 def find_dependency_free(yd: YD, done: frozenset[YD]) -> YD:
@@ -122,10 +113,13 @@ def find_dependency_free(yd: YD, done: frozenset[YD]) -> YD:
         return yd
 
 
-def suggest_next(done: frozenset[YD] = None) -> YD:
+def suggest_next(done: set[YD] = None) -> YD:
     if done is None:
         done = compute_done()
-    # this year first!
+    # Not Quite Lisp is ALWAYS first!
+    if not done:
+        return MIN_YEAR, 1
+    # this year next!
     if aoc_now.year == MAX_YEAR:
         for d in range(last_day_of_year(MAX_YEAR), 0, -1):
             day = MAX_YEAR, d
@@ -162,17 +156,15 @@ def suggest_next(done: frozenset[YD] = None) -> YD:
         rounds.append(curr - prev)
         curr = curr.union(prev)
         if len(curr) == total:
-            # it's flooded; find one of the last to be reached
-            y_factor = 25 / (MAX_YEAR - MIN_YEAR + 1)
-            no_day_25 = lambda yd: no_day_25_unless_complete(yd, done)
-            random = Random(hash(done))
+            # it's flooded; search backward for an appropriate day
+            all_deps = load_deps()
+            add_day_25(all_deps)
+            satisfied_deps = lambda yd: yd not in all_deps or all(
+                [d in done for d in all_deps[yd]]
+            )
             rounds.reverse()
             for candidates in rounds:
-                candidates = list(candidates)
-                random.shuffle(candidates)
-                for c in filter(no_day_25, candidates):
-                    c = find_dependency_free(c, done)
-                    if c is not None:
-                        return c
+                for c in filter(satisfied_deps, candidates):
+                    return c
             return None
         prev = curr

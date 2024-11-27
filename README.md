@@ -18,7 +18,7 @@ go see! It's both lovely, and will help make sense of this repo. :)
  2023 │  .  .  *  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . │   2
 ──────┼────────────────────────────────────────────────────────────────────────────┼─────
       │  8  6  2  .  2  2  .  2  2  .  4  2  4  2  .  2  2  2  2  2  .  2  2  .  . │  50
-                     Blizzard Basin  /  adventofcode.com/2022/day/24
+                     Blizzard Basin  /  adventofcode.com/2022/day/24                     
 </pre>
 
 https://github.com/barneyb/aoc2017 has an index of all years' repositories.

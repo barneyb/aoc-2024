@@ -115,8 +115,9 @@ for i, e in enumerate(puzzle.examples, start=1):
         asserts += f"""
         assert_eq!(r"{e.answer_a}", part_one(EXAMPLE_{i}).to_string());"""
     if e.answer_b:
+        prefix = "// " if has_part_a else ""
         asserts += f"""
-        // assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
+        {prefix}assert_eq!(r"{e.answer_b}", part_two(EXAMPLE_{i}).to_string());"""
     example_inputs += f"""
     const EXAMPLE_{i}: &str = r#"{e.input_data}"#;\n"""
     tst = f"""

@@ -7,7 +7,15 @@ from string import Template
 # noinspection PyUnresolvedReferences
 from aocd.models import Puzzle
 
-from lib import aoc_now, compute_done, last_day_of_year, MAX_YEAR, suggest_next
+from lib import (
+    aoc_now,
+    compute_done,
+    END,
+    FAINT,
+    last_day_of_year,
+    MAX_YEAR,
+    suggest_next,
+)
 
 done = compute_done()
 if len(sys.argv) == 1:
@@ -146,7 +154,7 @@ words = len(input_data.split())
 chars = len(input_data)
 print(f"{lines :8} {words :8} {chars :8} input.txt")
 print("-" * 80)
-print(f"{year} Day {day}: {puzzle.title}  |  adventofcode.com/{year}/day/{day}")
+print(f"{year} Day {day}: {puzzle.title} {FAINT}({puzzle.url}){END}")
 print()
 
 params = dict(

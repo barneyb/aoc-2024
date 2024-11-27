@@ -1,5 +1,6 @@
 use crate::Part;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
@@ -35,6 +36,35 @@ impl From<&str> for Field {
             "pid" => Pid,
             "cid" => Cid,
             s => panic!("Unknown '{s}' field?!"),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum EyeColor {
+    Amb,
+    Blu,
+    Brn,
+    Gry,
+    Grn,
+    Hzl,
+    Oth,
+}
+
+impl FromStr for EyeColor {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use EyeColor::*;
+        match s {
+            "amb" => Ok(Amb),
+            "blu" => Ok(Blu),
+            "brn" => Ok(Brn),
+            "gry" => Ok(Gry),
+            "grn" => Ok(Grn),
+            "hzl" => Ok(Hzl),
+            "oth" => Ok(Oth),
+            _ => Err(()),
         }
     }
 }
@@ -99,7 +129,7 @@ fn part_two(input: &str) -> usize {
                         && v.starts_with("#")
                         && v[1..].chars().all(|c| "0123456789abcdef".contains(c))
                 }
-                Ecl => ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"].contains(&&&**v),
+                Ecl => v.parse::<EyeColor>().is_ok(),
                 Pid => v.len() == 9 && v.chars().all(|c| c.is_ascii_digit()),
                 _ => true,
             } {

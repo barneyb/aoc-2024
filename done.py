@@ -24,7 +24,7 @@ subprocess.run(["git", "merge", "--no-commit", branch], check=True)
 
 f = io.StringIO()
 with redirect_stdout(f):
-    print_status()
+    print_status(include_working_copy=True)
 status = f.getvalue()
 
 with open("README.md", "r", encoding="utf-8") as f:
@@ -34,8 +34,8 @@ out = ""
 in_block = False
 for l in lines:
     if in_block and l == "</pre>\n":
-        # strip color codes
-        out += re.sub("\033[^m]*m", "", status)
+        # strip color codes and trailing spaces
+        out += re.sub("\s+\n", "\n", re.sub("\033[^m]*m", "", status))
         in_block = False
     if not in_block:
         out += l

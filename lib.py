@@ -20,14 +20,22 @@ END = "\033[0m"
 DEPS_FILE = ".deps.json"
 
 
-def compute_done() -> set[YD]:
-    # only consider files on master, not whatever is checked out
+def compute_done(*, include_working_copy: bool = False) -> set[YD]:
+    # always consider files committed to master
     rust_files = subprocess.run(
         ["git", "ls-tree", "master", "-r", "--name-only", "src"],
         capture_output=True,
         text=True,
         check=True,
     ).stdout
+    if include_working_copy:
+        # add whatever is currently checked out
+        rust_files += subprocess.run(
+            ["find", "src", "-name", "*_*.rs"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
     pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
     return {
         (int(m.group(1)), int(m.group(2)))

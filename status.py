@@ -18,8 +18,8 @@ from lib import (
 )
 
 
-def print_status():
-    done = compute_done()
+def print_status(*, include_working_copy: bool = False):
+    done = compute_done(include_working_copy=include_working_copy)
     row = "       "
     for d in range(1, 26):
         row += f" {d:2}"
@@ -61,7 +61,7 @@ def print_status():
     if suggestion:
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)
-        sugg = f"{puzzle.title}  /  adventofcode.com/{y}/day/{d}"
+        sugg = f"{puzzle.title} {FAINT}({puzzle.url}){END}"
     else:
         sugg = ""
     print(f"{sugg:^89}")

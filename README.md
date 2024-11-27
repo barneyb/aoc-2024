@@ -4,7 +4,24 @@ The yearly repo, seeded with a few solvers for random problems from prior years.
 If you don't know what [Advent of Code](https://adventofcode.com) is, you should
 go see! It's both lovely, and will help make sense of this repo. :)
 
-https://github.com/barneyb/aoc2017 has an index, if you want my details.
+<pre id="current-status">
+         1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 │   #
+──────┬────────────────────────────────────────────────────────────────────────────┼─────
+ 2015 │  *  .  .  .  .  *  .  .  .  .  .  .  .  .  .  *  .  .  .  .  .  .  .  .  . │   6
+ 2016 │  *  .  .  .  .  .  .  .  .  .  *  *  *  .  .  .  .  .  *  .  .  .  .  .  . │  10
+ 2017 │  *  *  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  *  .  . │   6
+ 2018 │  .  .  .  .  *  .  .  .  .  .  .  .  .  .  .  .  *  .  .  .  .  .  .  .  . │   4
+ 2019 │  .  *  .  .  .  .  .  *  .  .  .  .  .  *  .  .  .  .  .  .  .  .  .  .  . │   6
+ 2020 │  *  .  .  .  .  .  .  .  .  .  *  .  .  .  .  .  .  *  .  .  .  *  .  .  . │   8
+ 2021 │  .  *  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . │   2
+ 2022 │  .  .  .  .  .  .  .  .  *  .  .  .  *  .  .  .  .  .  .  *  .  .  .  ?  . │   6
+ 2023 │  .  .  *  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . │   2
+──────┼────────────────────────────────────────────────────────────────────────────┼─────
+      │  8  6  2  .  2  2  .  2  2  .  4  2  4  2  .  2  2  2  2  2  .  2  2  .  . │  50
+                     Blizzard Basin  /  adventofcode.com/2022/day/24
+</pre>
+
+https://github.com/barneyb/aoc2017 has an index of all years' repositories.
 
 ## Architecture
 

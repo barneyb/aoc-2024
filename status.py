@@ -48,14 +48,14 @@ def print_status():
                 row += f"  {FAINT}.{END}"
         total_count += count
         if count == 0:
-            count = '.'
+            count = "."
         print(f"{row} {FAINT}│ {count:3}{END}")
     print(FAINT + "──────┼─" + "─" * 25 * 3 + f"┼─────{END}")
     row = f"{FAINT}{'│':>7}"
     for d in range(1, 26):
         count = day_hist[d]
         if count == 0:
-            count = '.'
+            count = "."
         row += f"{count:>3}"
     print(f"{row} │ {total_count:3}{END}")
     if suggestion:

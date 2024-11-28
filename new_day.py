@@ -156,6 +156,7 @@ print(f"{lines :8} {words :8} {chars :8} input.txt")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title} {FAINT}({puzzle.url}){END}")
 print()
+subprocess.run(["open", puzzle.url], check=True)
 
 params = dict(
     year=year,

@@ -13,6 +13,7 @@ AOC_TZ = ZoneInfo("America/New_York")
 aoc_now = datetime.datetime.now(tz=AOC_TZ)
 MIN_YEAR = 2015
 MAX_YEAR = aoc_now.year if aoc_now.month == 12 else aoc_now.year - 1
+RED = "\033[0;31m"
 BOLD = "\033[1m"
 FAINT = "\033[2m"
 NEGATIVE = "\033[7m"

@@ -8,6 +8,7 @@ from aocd.models import Puzzle
 from lib import (
     BOLD,
     compute_done,
+    compute_in_progress,
     current_yd,
     END,
     FAINT,
@@ -46,7 +47,8 @@ def crab_midpoint(vals):
 
 def print_status(*, include_working_copy: bool = False):
     done = compute_done(include_working_copy=include_working_copy)
-    suggestion = suggest_next(done)
+    in_progress = compute_in_progress(done)
+    suggestion = suggest_next(done, in_progress)
     row = "       "
     for d in range(1, 26):
         row += f" {d:2}"
@@ -75,6 +77,8 @@ def print_status(*, include_working_copy: bool = False):
                     row += f" {NEGATIVE}*{END}"
                 else:
                     row += f" ?"
+            elif (y, d) in in_progress:
+                row += f" !"
             else:
                 row += f" {FAINT}.{END}"
             if d == midpoint:
@@ -103,13 +107,14 @@ def print_status(*, include_working_copy: bool = False):
         else:
             row += " "
     print(f"{row}│ {total_count:3}{END}")
+    for y, d in in_progress:
+        puzzle = Puzzle(year=y, day=d)
+        print(f"  {FAINT}Prog!{END} {puzzle.title} {FAINT}({puzzle.url}){END}")
     if suggestion:
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)
-        sugg = f"{puzzle.title} {FAINT}({puzzle.url}){END}"
-    else:
-        sugg = ""
-    print(f"  {FAINT}Next:{END} {sugg:^89}")
+        lbl = " Now:" if suggestion == current_yd() else "Next?"
+        print(f"  {FAINT}{lbl}{END} {puzzle.title} {FAINT}({puzzle.url}){END}")
 
 
 if __name__ == "__main__":

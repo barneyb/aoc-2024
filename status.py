@@ -20,6 +20,30 @@ from lib import (
 )
 
 
+def crab_midpoint(vals):
+    """So named for 2021 Day 7: The Treachery of Whales"""
+    if not vals:
+        return 0
+    lo = vals[0]
+    hi = vals[-1]
+    if lo == hi:
+        return lo
+    agg_dist = lambda pos: sum(map(lambda v: abs(pos - v), vals))
+    while lo < hi:
+        mid = int((lo + hi) / 2)
+        a = agg_dist(mid)
+        b = agg_dist(mid + 1)
+        if a < b:
+            hi = mid
+        elif a > b:
+            lo = mid + 1
+        else:
+            # no curvature
+            return mid
+    mid = math.floor(lo) + 1
+    return mid
+
+
 def print_status(*, include_working_copy: bool = False):
     done = compute_done(include_working_copy=include_working_copy)
     suggestion = suggest_next(done)
@@ -31,22 +55,15 @@ def print_status(*, include_working_copy: bool = False):
     total_count = 0
     day_hist = defaultdict(lambda: 0)
     for y in range(MIN_YEAR, MAX_YEAR + 1):
-        row = f" {y} {FAINT}│{END}"
+        row = f" {y} {FAINT}│{END} "
         end_day = last_day_of_year(y)
-        count = 0
-        sum = 0
-        for d in range(1, 26):
-            if d <= end_day and (y, d) in done:
-                count += 1
-                sum += d
-        midpoint = 1 if count == 0 else math.floor(sum / count) + 1
+        stars = []
+        for d in range(1, end_day + 1):
+            if (y, d) in done:
+                stars.append(d)
+        midpoint = crab_midpoint(stars)
         count = 0
         for d in range(1, 26):
-            if d == midpoint:
-                row += f"{RED}|{END}"
-                midpoint = None
-            else:
-                row += " "
             if d > end_day:
                 row += "  "
             elif (y, d) in done:
@@ -60,29 +77,32 @@ def print_status(*, include_working_copy: bool = False):
                     row += f" ?"
             else:
                 row += f" {FAINT}.{END}"
+            if d == midpoint:
+                row += f"{RED}|{END}"
+                midpoint = None
+            else:
+                row += " "
         total_count += count
         if count == 0:
             count = "."
-        print(f"{row} {FAINT}│ {count:>3}{END}")
+        print(f"{row}{FAINT}│ {count:>3}{END}")
     print(FAINT + "──────┼─" + "─" * 25 * 3 + f"┼─────{END}")
-    count = 0
-    sum = 0
+    stars = []
     for d in range(1, 26):
-        count += day_hist[d]
-        sum += day_hist[d] * d
-    midpoint = 1 if count == 0 else math.floor(sum / count) + 1
-    row = f"{FAINT}{'│':>7}"
+        stars.extend([d] * day_hist[d])
+    midpoint = crab_midpoint(stars)
+    row = f"{FAINT}{'│':>7} "
     for d in range(1, 26):
+        count = day_hist[d]
+        if count == 0:
+            count = "."
+        row += f"{count:>2}"
         if d == midpoint:
             row += f"{RED}|{END}{FAINT}"
             midpoint = 999999
         else:
             row += " "
-        count = day_hist[d]
-        if count == 0:
-            count = "."
-        row += f"{count:>2}"
-    print(f"{row} │ {total_count:3}{END}")
+    print(f"{row}│ {total_count:3}{END}")
     if suggestion:
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)

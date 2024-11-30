@@ -6,6 +6,7 @@ pub mod ord;
 pub mod geom2d;
 pub mod timing;
 pub mod util;
+pub mod viz;
 pub mod y2015;
 pub mod y2016;
 pub mod y2017;

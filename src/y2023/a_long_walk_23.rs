@@ -44,8 +44,8 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(r"74", part_one(EXAMPLE_1).to_string());
-        // assert_eq!(r"#####################O#", part_two(EXAMPLE_1).to_string());
+        assert_eq!(r"94", part_one(EXAMPLE_1).to_string());
+        // assert_eq!(r"154", part_two(EXAMPLE_1).to_string());
     }
 
     // #[test]

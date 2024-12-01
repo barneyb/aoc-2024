@@ -33,7 +33,7 @@ fn part_two((left, right): &Model) -> usize {
     let hist = right.into_histogram();
     left.iter()
         .filter(|&l| hist.contains_key(l))
-        .map(|l| l * hist.count(&l))
+        .map(|l| l * hist.count(l))
         .sum()
 }
 

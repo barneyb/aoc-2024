@@ -2,30 +2,71 @@ use crate::timing::Timing;
 use crate::viz::viz_file_stem;
 use petgraph::dot::Dot;
 use petgraph::visit::{GraphProp, IntoEdgeReferences, IntoNodeReferences, NodeIndexable};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::process::Command;
 
-/// Renders the passed [Dot] reference to a GraphViz file, named for the current
-/// executable, and uses `dot` to filter it into a PDF version of the same. If
-/// the same executable renders multiple graphs, they'll be named with a `_N`
-/// suffix, starting with `_2`.
+/// I render the passed [Dot] to a GraphViz file, named for the current
+/// executable, and uses `dot` to filter it into a PDF version of the same.
 pub fn render_dot<G>(dot: &Dot<G>)
 where
     G: IntoEdgeReferences + IntoNodeReferences + NodeIndexable + GraphProp,
     G::EdgeWeight: Debug,
     G::NodeWeight: Debug,
 {
+    write_and_render(|f| write!(f, "{:?}", dot))
+}
+
+/// I render the passed unweighted adjacency-list graph to a GraphViz file,
+/// named for the current executable, and uses `dot` to filter it into a PDF
+/// version of the same.
+pub fn render_unweighted<N>(graph: &HashMap<N, Vec<N>>)
+where
+    N: Debug,
+{
+    write_and_render(|f| {
+        writeln!(f, "digraph {{")?;
+        for (n, es) in graph {
+            for e in es {
+                writeln!(f, "\"{n:?}\" -> \"{e:?}\"")?;
+            }
+        }
+        writeln!(f, "}}")
+    })
+}
+
+/// I render the passed weighted adjacency-list graph to a GraphViz file, named
+/// for the current executable, and uses `dot` to filter it into a PDF version
+/// of the same.
+pub fn render_weighted<N, W>(graph: &HashMap<N, Vec<(N, W)>>)
+where
+    N: Debug,
+    W: Debug,
+{
+    write_and_render(|f| {
+        writeln!(f, "digraph {{")?;
+        for (n, es) in graph {
+            for (e, w) in es {
+                writeln!(f, "\"{n:?}\" -> \"{e:?}\" [label=\"{w:?}\"]")?;
+            }
+        }
+        writeln!(f, "}}")
+    })
+}
+
+fn write_and_render<F>(emit_content: F)
+where
+    F: Fn(&mut BufWriter<File>) -> std::io::Result<()>,
+{
     const PLUGIN: &str = "dot";
     const FORMAT: &str = "pdf";
     let (filename_gv, filename_render) = make_filenames(FORMAT);
     Timing::ad_hoc(&format!("Wrote graph to {filename_gv}"), || {
-        let diagram = format!("{:?}", dot);
         let f = File::create(&filename_gv).expect(&format!("Unable to create '{filename_gv}'"));
         let mut f = BufWriter::new(f);
-        f.write_all(diagram.as_bytes())
-            .expect("Unable to write data");
+        emit_content(&mut f).expect("Unable to write data");
     });
     let exit_code = Timing::ad_hoc(&format!("Rendered '{filename_gv}' to {FORMAT}"), || {
         Command::new(PLUGIN)

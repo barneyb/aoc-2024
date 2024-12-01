@@ -1,40 +1,118 @@
-use crate::viz::graphviz::render_dot;
+use crate::viz::graphviz::render_weighted;
 use crate::Part;
-use petgraph::dot::{Config, Dot};
-use petgraph::prelude::NodeIndex;
-use petgraph::Graph;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt::Debug;
+use std::hash::Hash;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
 type Pt = (usize, usize);
 
 fn part_one(input: &str) -> usize {
-    let (start, goal, graph, lookup) = parse(input);
-    render_dot(&Dot::with_config(&graph, &[Config::EdgeNoLabel]));
-    println!("{start:?} -> {goal:?}");
-    println!("{:?} -> {:?}", lookup.get(&start), lookup.get(&goal));
-    99999
+    let (start, goal, graph) = parse(input);
+    let mut forks = Vec::new();
+    forks.push(goal);
+    let mut queue = VecDeque::from([(start.0, 1)]);
+    let mut visited = HashSet::from([start]);
+    while let Some(curr) = queue.pop_front() {
+        if !visited.insert(curr) {
+            continue;
+        }
+        let (x, y) = curr;
+        if [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]
+            .iter()
+            .filter(|p| graph.contains_key(p))
+            .take(3)
+            .count()
+            > 2
+        {
+            forks.push(curr);
+        }
+        for n in graph.get(&curr).unwrap() {
+            queue.push_back(*n);
+        }
+    }
+    let targets: HashSet<_> = forks.into_iter().collect();
+    let mut mini: HashMap<_, Vec<(Pt, usize)>> = HashMap::new();
+    let mut queue: VecDeque<_> = targets.iter().map(|&t| (t, t, 0)).collect();
+    queue.push_front((start, start, 0));
+    let mut visited = HashSet::new();
+    while let Some((start, curr, dist)) = queue.pop_front() {
+        if targets.contains(&curr) {
+            if dist > 0 {
+                mini.entry(start).or_default().push((curr, dist));
+            }
+            for n in graph.get(&curr).unwrap() {
+                queue.push_back((curr, *n, 1));
+            }
+        } else {
+            if !visited.insert(curr) {
+                continue;
+            }
+            for n in graph.get(&curr).unwrap() {
+                queue.push_back((start, *n, dist + 1));
+            }
+        }
+    }
+    render_weighted(&mini);
+    Dfs::longest(&mini, start, goal)
 }
 
-fn parse(input: &str) -> (Pt, Pt, Graph<Pt, usize>, HashMap<Pt, NodeIndex>) {
+struct Dfs<'a, N> {
+    graph: &'a HashMap<N, Vec<(N, usize)>>,
+    goal: N,
+    visited: HashSet<N>,
+}
+
+impl<'a, N> Dfs<'a, N>
+where
+    N: Copy + Eq + Hash + Debug,
+{
+    fn longest(graph: &'a HashMap<N, Vec<(N, usize)>>, start: N, goal: N) -> usize {
+        Dfs {
+            graph,
+            goal,
+            visited: HashSet::new(),
+        }
+        .dfs(start)
+    }
+
+    fn dfs(&mut self, start: N) -> usize {
+        if start == self.goal {
+            return 0;
+        }
+        if !self.visited.insert(start) {
+            return 0;
+        }
+        let longest = self
+            .graph
+            .get(&start)
+            .unwrap()
+            .iter()
+            .map(|&(e, d)| d + self.dfs(e))
+            .max()
+            .unwrap();
+        self.visited.remove(&start);
+        longest
+    }
+}
+
+fn parse(input: &str) -> (Pt, Pt, HashMap<Pt, Vec<Pt>>) {
     let grid: Vec<Vec<_>> = input.lines().map(|l| l.chars().collect()).collect();
     let start = (grid[0].iter().position(|c| *c == '.').unwrap(), 0);
     let max_y = grid.len() - 1;
     let goal = (grid[max_y].iter().position(|c| *c == '.').unwrap(), max_y);
-    let mut graph: Graph<Pt, usize> = Graph::new();
-    let mut lookup = HashMap::new();
+    let mut graph: HashMap<Pt, Vec<Pt>> = HashMap::new();
+    graph.entry(goal).or_default();
     let mut add_edge = |src, tgt| {
         if src == goal || tgt == start {
             return;
         }
-        let src = *lookup.entry(src).or_insert_with(|| graph.add_node(src));
-        let tgt = *lookup.entry(tgt).or_insert_with(|| graph.add_node(tgt));
-        graph.add_edge(src, tgt, 1);
+        graph.entry(src).or_default().push(tgt);
     };
     // take the first step outside the loop
     let first = (start.0, 1);
@@ -72,7 +150,7 @@ fn parse(input: &str) -> (Pt, Pt, Graph<Pt, usize>, HashMap<Pt, NodeIndex>) {
             _ => {}
         }
     }
-    (start, goal, graph, lookup)
+    (start, goal, graph)
 }
 
 // fn part_two(input: &str) -> usize {
@@ -113,8 +191,8 @@ mod test {
         // assert_eq!(r"154", part_two(EXAMPLE_1).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2023, 23, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2023, 23, do_solve).unwrap();
+    }
 }

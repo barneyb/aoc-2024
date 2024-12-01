@@ -1,5 +1,5 @@
+use crate::hist::IntoHistogram;
 use crate::Part;
-use std::collections::HashMap;
 use std::iter::zip;
 use std::sync::mpsc::Sender;
 
@@ -30,13 +30,10 @@ fn part_one((left, right): &Model) -> usize {
 }
 
 fn part_two((left, right): &Model) -> usize {
-    let mut hist: HashMap<usize, usize> = HashMap::new();
-    for &r in right {
-        *hist.entry(r).or_default() += 1
-    }
+    let hist = right.into_histogram();
     left.iter()
         .filter(|&l| hist.contains_key(l))
-        .map(|l| l * hist.get(l).unwrap())
+        .map(|l| l * hist.count(&l))
         .sum()
 }
 

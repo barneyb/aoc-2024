@@ -1,6 +1,6 @@
 [package]
 name = "aoc-2024"
-version = "0.1.0"
+version = "0.2024.0"
 authors = ["Barney Boisvert <bboisvert@gmail.com>"]
 edition = "2021"
 

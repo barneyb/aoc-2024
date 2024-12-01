@@ -4,19 +4,15 @@ use std::iter::zip;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    let (left, right) = parse(input);
+    let model = parse(input);
     tx.send(Part::Parse(String::new())).unwrap();
-    tx.send(Part::A(part_one(&left, &right).to_string()))
-        .unwrap();
-    tx.send(Part::B(part_two(&left, &right).to_string()))
-        .unwrap();
+    tx.send(Part::A(part_one(&model).to_string())).unwrap();
+    tx.send(Part::B(part_two(&model).to_string())).unwrap();
 }
 
-fn part_one(left: &Vec<usize>, right: &Vec<usize>) -> usize {
-    zip(left, right).map(|(l, r)| l.abs_diff(*r)).sum()
-}
+type Model = (Vec<usize>, Vec<usize>);
 
-fn parse(input: &str) -> (Vec<usize>, Vec<usize>) {
+fn parse(input: &str) -> Model {
     let mut left: Vec<usize> = Vec::new();
     let mut right: Vec<usize> = Vec::new();
     for line in input.lines() {
@@ -29,7 +25,11 @@ fn parse(input: &str) -> (Vec<usize>, Vec<usize>) {
     (left, right)
 }
 
-fn part_two(left: &Vec<usize>, right: &Vec<usize>) -> usize {
+fn part_one((left, right): &Model) -> usize {
+    zip(left, right).map(|(l, r)| l.abs_diff(*r)).sum()
+}
+
+fn part_two((left, right): &Model) -> usize {
     let mut hist: HashMap<usize, usize> = HashMap::new();
     for &r in right {
         *hist.entry(r).or_default() += 1
@@ -53,9 +53,9 @@ mod test {
 
     #[test]
     fn example_1() {
-        let (left, right) = parse(EXAMPLE_1);
-        assert_eq!(r"11", part_one(&left, &right).to_string());
-        assert_eq!(r"31", part_two(&left, &right).to_string());
+        let model = parse(EXAMPLE_1);
+        assert_eq!(r"11", part_one(&model).to_string());
+        assert_eq!(r"31", part_two(&model).to_string());
     }
 
     #[test]

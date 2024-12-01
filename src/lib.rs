@@ -12,7 +12,6 @@ pub mod block_print;
 pub mod ord;
 pub mod geom2d;
 pub mod timing;
-pub mod util;
 pub mod y2015;
 pub mod y2016;
 pub mod y2017;

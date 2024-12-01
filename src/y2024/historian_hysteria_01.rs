@@ -34,7 +34,10 @@ fn part_two(left: &Vec<usize>, right: &Vec<usize>) -> usize {
     for &r in right {
         *hist.entry(r).or_default() += 1
     }
-    left.iter().map(|&l| l * *hist.entry(l).or_default()).sum()
+    left.iter()
+        .filter(|&l| hist.contains_key(l))
+        .map(|l| l * hist.get(l).unwrap())
+        .sum()
 }
 
 #[cfg(test)]

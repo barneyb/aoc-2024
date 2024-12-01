@@ -5,7 +5,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let model = parse(input);
-    tx.send(Part::Parse(String::new())).unwrap();
+    tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&model).to_string())).unwrap();
     tx.send(Part::B(part_two(&model).to_string())).unwrap();
 }

@@ -5,6 +5,7 @@ use petgraph::visit::{GraphProp, IntoEdgeReferences, IntoNodeReferences, NodeInd
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{BufWriter, Write};
 use std::process::Command;
 
@@ -24,13 +25,20 @@ where
 /// version of the same.
 pub fn render_unweighted<N>(graph: &HashMap<N, Vec<N>>)
 where
-    N: Debug,
+    N: Debug + Eq + Hash,
 {
     write_and_render(|f| {
+        let mut index = HashMap::new();
         writeln!(f, "digraph {{")?;
+        for (n, _) in graph {
+            let i = index.len();
+            index.insert(n, i);
+            writeln!(f, "{i} [label=\"{n:?}\"]")?;
+        }
         for (n, es) in graph {
+            let i = index.get(n).unwrap();
             for e in es {
-                writeln!(f, "\"{n:?}\" -> \"{e:?}\"")?;
+                writeln!(f, "{i} -> {}", index.get(e).unwrap())?;
             }
         }
         writeln!(f, "}}")
@@ -56,7 +64,11 @@ where
     })
 }
 
-fn write_and_render<F>(emit_content: F)
+/// I am the most low-level function, providing direct access to emit whatever
+/// graphviz content you wish, directly to the output file, named for the
+/// current executable. Afterward, `dot` is used to filter it into a PDF version
+/// of the same.
+pub fn write_and_render<F>(emit_content: F)
 where
     F: Fn(&mut BufWriter<File>) -> std::io::Result<()>,
 {

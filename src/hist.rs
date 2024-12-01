@@ -8,11 +8,23 @@ use std::hash::Hash;
 use std::ops::Deref;
 
 /// A `usize`-valued histogram, backed by a [HashMap].
+#[derive(Clone, Default)]
 pub struct Histogram<T>
 where
     T: Eq + Hash,
 {
     map: HashMap<T, usize>,
+}
+
+impl<T> Eq for Histogram<T> where T: Eq + Hash {}
+
+impl<T> PartialEq for Histogram<T>
+where
+    T: Eq + Hash,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.map == other.map
+    }
 }
 
 impl<T> Histogram<T>
@@ -130,8 +142,17 @@ where
     type Item = I::Item;
 
     fn into_histogram(self) -> Histogram<Self::Item> {
-        let mut map: HashMap<Self::Item, _> = HashMap::new();
-        for t in self {
+        Histogram::from_iter(self)
+    }
+}
+
+impl<T> FromIterator<T> for Histogram<T>
+where
+    T: Eq + Hash,
+{
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut map: HashMap<T, _> = HashMap::new();
+        for t in iter {
             *map.entry(t).or_default() += 1
         }
         Histogram { map }

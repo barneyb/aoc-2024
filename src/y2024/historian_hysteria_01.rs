@@ -31,10 +31,7 @@ fn part_one((left, right): &Model) -> usize {
 
 fn part_two((left, right): &Model) -> usize {
     let hist = right.into_histogram();
-    left.iter()
-        .filter(|&l| hist.contains_key(l))
-        .map(|l| l * hist.count(l))
-        .sum()
+    left.iter().map(|l| l * hist.count(l)).sum()
 }
 
 #[cfg(test)]

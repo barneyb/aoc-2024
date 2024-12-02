@@ -35,6 +35,17 @@ API. Retrieving input comes out of the box; there's a small wrapper script `src`
 that helps with and submitting answers. This alleviates a lot of manual steps,
 as well as keeps all of my "private" info out of the source code.
 
+The general idea is to run `./new_day.py`, which sets up a day to work on, get
+it solved, then run `./done.py`. The generated skeleton will take care of both
+submission and re-validation of your input, along with whatever examples are
+available.
+
+The `./new_day.py` script accepts year and day params if you want to set up a
+specific puzzle. With no options, it'll select the latest unsolved day from this
+year, if one exists. Otherwise, one that is "far away" from what you've already
+solved will be chosen. 2019, in particular, has dependencies between puzzles;
+you won't get later puzzles unless you've solved the earlier ones.
+
 ## Running
 
 You need a current-ish Rust, a current-ish Python, and `aocd` both pip-installed

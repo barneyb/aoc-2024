@@ -1,4 +1,5 @@
 use aoc::aocd;
+use aoc::viz::viz_file_name;
 use aoc::y2015::probably_a_fire_hazard_06::part_two_array;
 use nannou::prelude::*;
 
@@ -44,8 +45,7 @@ fn model(app: &App) -> Model {
 fn key_pressed(app: &App, _model: &mut Model, key: Key) {
     match key {
         Key::S => {
-            app.main_window()
-                .capture_frame("viz/".to_string() + &app.exe_name().unwrap() + ".png");
+            app.main_window().capture_frame(viz_file_name("png"));
         }
         _other_key => {}
     }

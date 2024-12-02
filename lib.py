@@ -58,8 +58,7 @@ def compute_in_progress(done: set[YD] = None) -> set[YD]:
     return {
         (int(m.group(1)), int(m.group(2)))
         for m in [
-            re.fullmatch(pat, branch.strip())
-            for branch in branches.strip().splitlines()
+            re.fullmatch(pat, branch[2:]) for branch in branches.strip().splitlines()
         ]
         if m
     } - done

@@ -56,6 +56,7 @@ def print_status(*, include_working_copy: bool = False):
     print(FAINT + "──────┬─" + "─" * 25 * 3 + f"┼─────{END}")
     total_count = 0
     day_hist = defaultdict(lambda: 0)
+    curr_yd = current_yd()
     for y in range(MIN_YEAR, MAX_YEAR + 1):
         row = f" {y} {FAINT}│{END} "
         end_day = last_day_of_year(y)
@@ -73,7 +74,7 @@ def print_status(*, include_working_copy: bool = False):
                 day_hist[d] += 2
                 row += f" {BOLD}*{END}"
             elif (y, d) == suggestion:
-                if suggestion == current_yd():
+                if suggestion == curr_yd:
                     row += f" {NEGATIVE}*{END}"
                 else:
                     row += f" ?"
@@ -108,12 +109,13 @@ def print_status(*, include_working_copy: bool = False):
             row += " "
     print(f"{row}│ {total_count:3}{END}")
     for y, d in in_progress:
-        puzzle = Puzzle(year=y, day=d)
-        print(f"  {FAINT}Prog!{END} {puzzle.title} {FAINT}({puzzle.url}){END}")
+        if (y, d) != curr_yd:
+            puzzle = Puzzle(year=y, day=d)
+            print(f"  {FAINT}Prog!{END} {puzzle.title} {FAINT}({puzzle.url}){END}")
     if suggestion:
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)
-        lbl = " Now:" if suggestion == current_yd() else "Next?"
+        lbl = " Now:" if suggestion == curr_yd else "Next?"
         print(f"  {FAINT}{lbl}{END} {puzzle.title} {FAINT}({puzzle.url}){END}")
 
 

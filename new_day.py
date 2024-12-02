@@ -161,6 +161,7 @@ if len(lines) > 1:
     else:
         print(f"{lo:8} min line length")
         print(f"{hi:8} max line length")
+print(f"{('DOES' if '-' in input_data else 'DOES NOT'):8} contain dashes")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title} {FAINT}({puzzle.url}){END}")
 print()

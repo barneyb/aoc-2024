@@ -11,7 +11,8 @@ use std::{io, thread};
 pub enum Part {
     A(String),
     B(String),
-    Parse(String),
+    Parse(),
+    Parsed(String),
     Other(String),
 }
 
@@ -135,28 +136,43 @@ impl Print {
             &self.wrong_style
         };
         let (ans, lbl) = match part {
-            Part::A(a) => (a, pstyle.apply_to("Part A:".to_string())),
-            Part::B(a) => (a, pstyle.apply_to("Part B:".to_string())),
-            Part::Parse(a) => (a, self.parse_style.apply_to(format!("Parse:"))),
-            Part::Other(a) => (a, self.other_style.apply_to(format!("Answer {count}:"))),
+            Part::A(a) => (Some(a), pstyle.apply_to("Part A:".to_string())),
+            Part::B(a) => (Some(a), pstyle.apply_to("Part B:".to_string())),
+            Part::Parse() => (None, self.parse_style.apply_to(format!("Parsed "))),
+            Part::Parsed(a) => (Some(a), self.parse_style.apply_to(format!("Parse:"))),
+            Part::Other(a) => (
+                Some(a),
+                self.other_style.apply_to(format!("Answer {count}:")),
+            ),
         };
-        if ans.contains('\n') {
-            let twelve_spaces = format!(" {:>12}", "");
-            println!(
-                "{:>12}{} {}\n{}{}",
-                self.correct_style.apply_to(lbl),
-                twelve_spaces,
-                self.time_style.apply_to(format!("({:>12?})", duration)),
-                twelve_spaces,
-                ans.replace('\n', &format!("\n{twelve_spaces}"))
-            );
-        } else {
-            println!(
-                "{:>12} {:>12} {}",
-                self.correct_style.apply_to(lbl),
-                self.ans_style.apply_to(ans),
-                self.time_style.apply_to(format!("({:>12?})", duration))
-            );
+        match ans {
+            None => {
+                println!(
+                    "{:>12} {:>12} {}",
+                    self.correct_style.apply_to(lbl),
+                    "",
+                    self.time_style.apply_to(format!("({:>12?})", duration))
+                );
+            }
+            Some(ans) if ans.contains('\n') => {
+                let twelve_spaces = format!(" {:>12}", "");
+                println!(
+                    "{:>12}{} {}\n{}{}",
+                    self.correct_style.apply_to(lbl),
+                    twelve_spaces,
+                    self.time_style.apply_to(format!("({:>12?})", duration)),
+                    twelve_spaces,
+                    ans.replace('\n', &format!("\n{twelve_spaces}"))
+                );
+            }
+            Some(ans) => {
+                println!(
+                    "{:>12} {:>12} {}",
+                    self.correct_style.apply_to(lbl),
+                    self.ans_style.apply_to(ans),
+                    self.time_style.apply_to(format!("({:>12?})", duration))
+                );
+            }
         }
         correct
     }

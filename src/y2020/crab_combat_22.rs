@@ -4,12 +4,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let decks = parse(input);
-    tx.send(Part::Parse(format!(
-        "{}, {}",
-        decks[0].len(),
-        decks[1].len()
-    )))
-    .unwrap();
+    tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&decks[0], &decks[1]).to_string()))
         .unwrap();
     tx.send(Part::B(part_two(&decks[0], &decks[1]).to_string()))

@@ -4,8 +4,8 @@ pub mod driver;
 #[macro_use]
 pub mod ord;
 pub mod geom2d;
+pub mod hist;
 pub mod timing;
-pub mod util;
 pub mod viz;
 pub mod y2015;
 pub mod y2016;

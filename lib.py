@@ -45,6 +45,26 @@ def compute_done(*, include_working_copy: bool = False) -> set[YD]:
     }
 
 
+def compute_in_progress(done: set[YD] = None) -> set[YD]:
+    if done is None:
+        done = compute_done()
+    branches = subprocess.run(
+        ["git", "branch", "--list", "*/*"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    pat = re.compile(r"(\d{4})/(\d{1,2})")
+    return {
+        (int(m.group(1)), int(m.group(2)))
+        for m in [
+            re.fullmatch(pat, branch.strip())
+            for branch in branches.strip().splitlines()
+        ]
+        if m
+    } - done
+
+
 def current_branch():
     return subprocess.run(
         ["git", "name-rev", "--name-only", "HEAD"],
@@ -122,9 +142,11 @@ def find_dependency_free(yd: YD, done: frozenset[YD]) -> YD:
         return yd
 
 
-def suggest_next(done: set[YD] = None) -> YD:
+def suggest_next(done: set[YD] = None, in_progress: set[YD] = None) -> YD:
     if done is None:
         done = compute_done()
+    if in_progress is None:
+        in_progress = compute_in_progress(done)
     # Not Quite Lisp is ALWAYS first!
     if not done:
         return MIN_YEAR, 1
@@ -135,9 +157,10 @@ def suggest_next(done: set[YD] = None) -> YD:
             if day not in done:
                 return day
     total = sum([last_day_of_year(y) for y in range(MIN_YEAR, MAX_YEAR + 1)])
-    if len(done) == total:
+    prev = set(done)
+    prev.update(in_progress)
+    if len(prev) == total:
         return None
-    prev = done
     rounds = []
     # flood the grid
     while True:

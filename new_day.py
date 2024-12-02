@@ -147,12 +147,20 @@ print("Today's Input:")
 print("-" * 80)
 print(f"{input_data}")
 print("-" * 80)
-# I'm wc! But terrible!
-print("$ wc input.txt")
-lines = len(input_data.splitlines())
-words = len(input_data.split())
-chars = len(input_data)
-print(f"{lines :8} {words :8} {chars :8} input.txt")
+lines = input_data.splitlines()
+words = input_data.split()
+chars = input_data
+print(f"{len(lines):8} lines")
+print(f"{len(words):8} words")
+print(f"{len(chars):8} chars")
+if len(lines) > 1:
+    lo = min(map(len, lines))
+    hi = max(map(len, lines))
+    if lo == hi:
+        print(f"{lo:8} line length")
+    else:
+        print(f"{lo:8} min line length")
+        print(f"{hi:8} max line length")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title} {FAINT}({puzzle.url}){END}")
 print()

@@ -1,4 +1,3 @@
-use crate::util::index_of_first;
 use crate::Part;
 use std::sync::mpsc::Sender;
 
@@ -33,7 +32,7 @@ fn solve(numbers: &Vec<isize>, decryption_key: isize, rounds: usize) -> isize {
     let len_less_one = pairs.len() as isize - 1;
     for _ in 0..rounds {
         for idx in 0..pairs.len() {
-            let idx_src = index_of_first(&pairs, |&(order, _)| order == idx).unwrap();
+            let idx_src = pairs.iter().position(|&(order, _)| order == idx).unwrap();
             let it = pairs.remove(idx_src);
             let mut idx_tgt = (idx_src as isize + it.1) % len_less_one;
             if idx_tgt < 0 {
@@ -42,7 +41,7 @@ fn solve(numbers: &Vec<isize>, decryption_key: isize, rounds: usize) -> isize {
             pairs.insert(idx_tgt as usize, it);
         }
     }
-    let idx_zero = index_of_first(&pairs, |(_, n)| *n == 0).unwrap();
+    let idx_zero = pairs.iter().position(|(_, n)| *n == 0).unwrap();
     vec![1000, 2000, 3000]
         .into_iter()
         .map(|it| pairs[(idx_zero + it) % pairs.len()].1)

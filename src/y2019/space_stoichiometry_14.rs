@@ -6,7 +6,7 @@ use symbol_table::GlobalSymbol;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let cookbook = parse(input);
-    tx.send(Part::Parse(cookbook.len().to_string())).unwrap();
+    tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&cookbook).to_string())).unwrap();
     tx.send(Part::B(part_two(&cookbook).to_string())).unwrap();
 }

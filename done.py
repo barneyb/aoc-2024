@@ -20,7 +20,13 @@ if branch == "master":
 subprocess.run(["cargo", "test", "--profile", "release"], check=True)
 subprocess.run(["git", "checkout", "master"], check=True)
 subprocess.run(["git", "pull"], check=True)
-subprocess.run(["git", "merge", "--no-commit", branch], check=True)
+if subprocess.run(["git", "merge", "--no-commit", branch]).returncode != 0:
+    print()
+    print(f"Merge master into '{branch}' and try again...")
+    print()
+    subprocess.run(["git", "merge", "--abort"], check=True)
+    subprocess.run(["git", "checkout", branch], check=True)
+    exit(3)
 
 f = io.StringIO()
 with redirect_stdout(f):

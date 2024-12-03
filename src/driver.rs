@@ -71,6 +71,7 @@ fn listen_for_answers(
     solve_rx: Receiver<Part>,
     print_tx: Sender<(Part, Duration)>,
 ) {
+    let mut seen_a = false;
     loop {
         match solve_rx.recv() {
             Ok(p) => {
@@ -80,6 +81,13 @@ fn listen_for_answers(
                     *t = Instant::now();
                     e
                 };
+                match &p {
+                    Part::A(_) => seen_a = true,
+                    Part::B(_) if !seen_a => {
+                        panic!("Part B can't be answered before part A. Undo the shenanigans.")
+                    }
+                    _ => {}
+                }
                 print_tx.send((p, dur)).unwrap()
             }
             Err(RecvError) => break,

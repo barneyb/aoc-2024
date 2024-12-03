@@ -306,26 +306,6 @@ F1 E  .  HM .  LM
     }
 
     #[test]
-    fn test_parse_real_input() {
-        use crate::with_input;
-        with_input(2016, 11, |input, _| {
-            let (el, st) = parse(input);
-            println!(
-                "{}",
-                Solver::new("TPSpR")
-                    .draw(0b00_1010_1010_0001_0001_0000)
-                    .unwrap()
-            );
-            println!("0b0010101010000100010000");
-            println!("{st:#024b}");
-            println!("{}", Solver::new(&el).draw(st).unwrap());
-            assert_eq!("TPSpR".to_owned(), el);
-            assert_eq!(0b00_1010_1010_0001_0001_0000, st);
-        })
-        .unwrap();
-    }
-
-    #[test]
     fn test_real_input() {
         crate::with_input(2016, 11, do_solve).unwrap();
     }

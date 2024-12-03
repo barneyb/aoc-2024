@@ -56,6 +56,38 @@ While there are binary solvers, a given solver module's tests are where to start
 When your token expires in ~30 days, you'll get completely non-handled 400 HTTP
 errors. Go update your token.
 
+## Multi-Account Verification
+
+If you're especially masochistic, you can configure `aocd` with multiple account
+tokens and run them all across every solver, all at once. Be careful, however,
+as this may cause the server to rate-limit your user(s). Judicious use of
+`Ctrl-C` is advised, until you have inputs and answers cached locally.
+
+```
+% ./run_all.py
+Building............................................................Done!  138.77 ms
+                                                        | github | gmail
+2015 ====================================================================
+   1 Not Quite Lisp                                     |   ✔    |   ✔     857.30 ms
+   6 Probably a Fire Hazard                             |   ✔    |   ✔     870.90 ms
+  16 Aunt Sue                                           |   ✔    |   ✔     818.19 ms
+2016 ====================================================================
+  11 Radioisotope Thermoelectric Generators             |   ✔    |   ✔      5.49 sec
+  12 Leonardo's Monorail                                |   ✔    |   ✔     819.57 ms
+=========================================================================
+Success!                                                                    9.01 sec
+```
+
+Do note that "fast" solvers' times are significantly inflated by acquisition of
+puzzle input. The solver for _Not Quite Lisp_, for example, takes less than 30µs
+to execute (vs the ~430ms suggested above), once input is acquired:
+
+```
+% cargo run -r --bin not_quite_lisp --quiet
+     Part A:          280 (    23.041µs)
+     Part B:         1797 (     3.316µs)
+```
+
 ## Visualization
 
 Some of the binaries do visualization, rather than spit out answers. One example

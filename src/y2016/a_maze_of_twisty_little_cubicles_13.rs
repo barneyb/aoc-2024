@@ -106,7 +106,6 @@ mod test {
 
     #[test]
     fn test_real_input() {
-        use crate::with_input;
-        with_input(2016, 13, do_solve).unwrap();
+        crate::with_input(2016, 13, do_solve).unwrap();
     }
 }

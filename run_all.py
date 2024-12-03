@@ -52,7 +52,7 @@ prev = None
 env = {}
 env.update(os.environ)
 exit_code = 0
-for y, d in sorted(compute_done()):
+for y, d in reversed(sorted(compute_done())):
     if y != prev:
         print(f"{y} {'=' * (WIDTH-5)}")
         prev = y
@@ -71,7 +71,7 @@ for y, d in sorted(compute_done()):
                 "release",
                 "--quiet",
                 "--lib",
-                f"y{y}::{puzzle_name(puzzle)}_{d:02}::test",
+                f"y{y}::{puzzle_name(puzzle)}_{d:02}::test::test_real_input",
             ],
             env=env,
             capture_output=True,

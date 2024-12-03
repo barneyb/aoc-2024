@@ -67,15 +67,13 @@ as this may cause the server to rate-limit your user(s). Judicious use of
 % ./run_all.py
 Building............................................................Done!  138.77 ms
                                                         | github | gmail
+2024 ====================================================================
+   2 Red-Nosed Reports                                  |   ✔    |   ✔     818.19 ms
+   1 Historian Hysteria                                 |   ✔    |   ✔     870.90 ms
 2015 ====================================================================
    1 Not Quite Lisp                                     |   ✔    |   ✔     857.30 ms
-   6 Probably a Fire Hazard                             |   ✔    |   ✔     870.90 ms
-  16 Aunt Sue                                           |   ✔    |   ✔     818.19 ms
-2016 ====================================================================
-  11 Radioisotope Thermoelectric Generators             |   ✔    |   ✔      5.49 sec
-  12 Leonardo's Monorail                                |   ✔    |   ✔     819.57 ms
 =========================================================================
-Success!                                                                    9.01 sec
+Success!                                                                    2.54 sec
 ```
 
 Do note that "fast" solvers' times are significantly inflated by acquisition of
@@ -87,6 +85,10 @@ to execute (vs the ~430ms suggested above), once input is acquired:
      Part A:          280 (    23.041µs)
      Part B:         1797 (     3.316µs)
 ```
+
+Submission is even slower: 5-10 _seconds_ may be required if both parts are
+newly solved. If you have three tokens, 20 seconds is not unreasonable, even for
+a solver with sub-millisecond running time.
 
 ## Visualization
 

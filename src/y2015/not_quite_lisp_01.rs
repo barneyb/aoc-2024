@@ -34,13 +34,13 @@ pub fn both_parts(input: &str, tx: Sender<Part>) -> (i32, usize) {
             _ => f,
         };
         if f == -1 && entered_basement.is_none() {
-            let eb = i + 1;
-            entered_basement = Some(eb);
-            tx.send(Part::B(eb.to_string())).unwrap();
+            entered_basement = Some(i + 1);
         }
     }
     tx.send(Part::A(f.to_string())).unwrap();
-    (f, entered_basement.expect("Should have entered basement"))
+    let eb = entered_basement.expect("Basement wasn't entered?!");
+    tx.send(Part::B(eb.to_string())).unwrap();
+    (f, eb)
 }
 
 #[cfg(test)]

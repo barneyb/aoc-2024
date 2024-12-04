@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
-use std::{io, thread};
+use std::{env, io, thread};
 
 #[derive(Debug)]
 pub enum Part {
@@ -24,6 +24,9 @@ where
     S: FnOnce(&str, Sender<Part>) -> (),
     S: Send + 'static,
 {
+    let solve_nanos = env::var("BEB_SOLVE_NANOS")
+        .map(|v| v != "0")
+        .unwrap_or(false);
     let (print_tx, print_rx) = channel();
     let print_handle = thread::spawn(move || {
         let print = Print::new();
@@ -48,11 +51,16 @@ where
         let mut t = time_arc.write().unwrap();
         *t = Instant::now();
     }
-    work(input.trim_end_matches('\n'), solve_tx);
 
+    let solve_nanos_start = Instant::now();
+    work(input.trim_end_matches('\n'), solve_tx);
     answer_handle
         .join()
         .expect("Answer thread should have exited cleanly");
+    if solve_nanos {
+        let nanos = solve_nanos_start.elapsed().as_nanos();
+        println!("¡¡solve nanos {}!!", nanos);
+    }
     if print_handle
         .join()
         .expect("Print thread should have exited cleanly")

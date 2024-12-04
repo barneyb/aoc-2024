@@ -85,6 +85,7 @@ print(f"{row:>{WIDTH}}")
 prev = None
 env = {}
 env.update(os.environ)
+env["BEB_SOLVE_NANOS"] = "1"
 exit_code = 0
 for y, d in reversed(sorted(to_run)):
     if y != prev:
@@ -93,6 +94,7 @@ for y, d in reversed(sorted(to_run)):
     puzzle = Puzzle(year=y, day=d)
     print(f"{d:>4} {puzzle.title[0:W_TITLE]:{W_TITLE}}", end="", flush=True)
     start_puzzle = perf_counter_ns()
+    solve_nanos = []
     abandon_puzzle = False
     for provider, tkn in TOKENS.items():
         print(f" {FAINT}|{END} ", end="", flush=True)
@@ -106,6 +108,9 @@ for y, d in reversed(sorted(to_run)):
                 "--quiet",
                 "--lib",
                 f"y{y}::{puzzle_name(puzzle)}_{d:02}::test::test_real_input",
+                "--",
+                "--show-output",
+                "--exact",
             ],
             env=env,
             capture_output=True,
@@ -116,7 +121,12 @@ for y, d in reversed(sorted(to_run)):
         else:
             mark = f"{RED}{'✖':^{W_ACCOUNT}}{END}"
         print(f"{mark}", end="", flush=True)
-        if res.returncode != 0:
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                if line.startswith("¡¡solve nanos ") and line.endswith("!!"):
+                    solve_nanos.append(int(line[14:-2]))
+                    break
+        else:
             print(res.stdout)
             print(res.stderr, file=sys.stderr)
             print()
@@ -129,7 +139,10 @@ for y, d in reversed(sorted(to_run)):
             break
     if abandon_puzzle:
         continue
-    print(format_ns(perf_counter_ns() - start_puzzle))
+    if len(solve_nanos) == N_ACCOUNTS:
+        print(format_ns(sum(solve_nanos)))
+    else:
+        print(format_ns(perf_counter_ns() - start_puzzle))
 print("=" * WIDTH)
 if exit_code == 0:
     fmt = GREEN

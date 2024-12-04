@@ -1,54 +1,106 @@
-use lazy_static::lazy_static;
 use std::collections::HashMap;
 
+/// Unicode U+2588 Full Block, for prettier - but non-ASCII - block printing.
 pub const BLOCK: char = '█';
-const WIDTH: usize = 5;
-const HEIGHT: usize = 6;
 
-lazy_static! {
-    static ref BLOCK_GLYPHS: HashMap<&'static str, char> = {
-        let mut m = HashMap::new();
-        // A
-        m.insert("███  \n█  █ \n███  \n█  █ \n█  █ \n███  \n", 'B');
-        m.insert(" ██  \n█  █ \n█    \n█    \n█  █ \n ██  \n", 'C');
-        // D
-        m.insert("████ \n█    \n███  \n█    \n█    \n████ \n", 'E');
-        m.insert("████ \n█    \n███  \n█    \n█    \n█    \n", 'F');
-        m.insert(" ██  \n█  █ \n█    \n█ ██ \n█  █ \n ███ \n", 'G');
-        m.insert("█  █ \n█  █ \n████ \n█  █ \n█  █ \n█  █ \n", 'H');
-        // I
-        m.insert("  ██ \n   █ \n   █ \n   █ \n█  █ \n ██  \n", 'J');
-        m.insert("█  █ \n█ █  \n██   \n█ █  \n█ █  \n█  █ \n", 'K');
-        m.insert("█    \n█    \n█    \n█    \n█    \n████ \n", 'L');
-        // M
-        // N
-        m.insert(" ██  \n█  █ \n█  █ \n█  █ \n█  █ \n ██  \n", 'O');
-        m.insert("███  \n█  █ \n█  █ \n███  \n█    \n█    \n", 'P');
-        // Q
-        m.insert("███  \n█  █ \n█  █ \n███  \n█ █  \n█  █ \n", 'R');
-        m.insert(" ███ \n█    \n█    \n ██  \n   █ \n███  \n", 'S');
-        // T
-        m.insert("█  █ \n█  █ \n█  █ \n█  █ \n█  █ \n ██  \n", 'U');
-        // V
-        // W
-        // X
-        m.insert("█   █\n█   █\n █ █ \n  █  \n  █  \n  █  \n", 'Y');
-        m.insert("████ \n   █ \n  █  \n █   \n█    \n████ \n", 'Z');
-        m
-    };
+mod font_5x6;
+mod font_6x10;
+mod font_x8;
+
+type Glyphs = HashMap<&'static str, char>;
+
+pub struct Font {
+    width: Option<usize>,
+    kerned: bool,
+    #[allow(dead_code)]
+    height: usize,
+    glyphs: &'static Glyphs,
+}
+
+impl Font {
+    fn is_fixed_width(&self) -> bool {
+        self.width.is_some()
+    }
+
+    fn is_kerned(&self) -> bool {
+        self.kerned
+    }
+
+    fn recognize(&self, lines: &[&[char]]) -> Result<String, &'static str> {
+        let mut result = String::new();
+        let mut buffer = String::new();
+        let line_len = lines[0].len();
+        let mut i = 0;
+        while i < line_len {
+            buffer.clear();
+            if self.is_fixed_width() {
+                self.read_fixed_width(lines, &mut i, self.width.unwrap(), &mut buffer);
+            } else {
+                self.read_variable_width(lines, &mut i, &mut buffer);
+            }
+            // I remain confused why a &String doesn't coerce to &str, and requires
+            // an explicit [..] to slice it.
+            if let Some(&c) = self.glyphs.get(&buffer[..]) {
+                result.push(c)
+            } else {
+                eprintln!("Block printed character wasn't recognized.\n[{buffer}]",);
+                return Err("Failed to identify block-printed glyph.");
+            }
+            if self.is_kerned() {
+                self.soak_up_spaces(lines, &mut i)
+            }
+        }
+        Ok(result)
+    }
+
+    fn is_space(&self, lines: &[&[char]], i: usize) -> bool {
+        lines.iter().all(|l| l[i] == '.')
+    }
+
+    fn soak_up_spaces(&self, lines: &[&[char]], i: &mut usize) {
+        let len = lines[0].len();
+        while *i < len && self.is_space(lines, *i) {
+            *i += 1;
+        }
+    }
+
+    fn read_variable_width(&self, lines: &[&[char]], i: &mut usize, buffer: &mut String) {
+        let len = lines[0].len();
+        let mut end = *i + 1;
+        while end < len && !self.is_space(lines, end) {
+            end += 1;
+        }
+        self.read_fixed_width(lines, i, end - *i, buffer)
+    }
+
+    fn read_fixed_width(
+        &self,
+        lines: &[&[char]],
+        i: &mut usize,
+        width: usize,
+        buffer: &mut String,
+    ) {
+        let pos = *i;
+        *i += width;
+        for l in lines.iter() {
+            buffer.push('\n');
+            buffer.extend(&l[pos..*i]);
+        }
+    }
 }
 
 /// Parse block printing (a la 2016/08 Two-Factor Authentication) and turn it
 /// into an equivalent string of uppercase ASCII letters. All block printed
-/// strings are six rows 'tall', and fixed-width at five columns per char.
+/// strings are of uniform height, but individual glyphs may vary in width,
+/// depending on the font.
 ///
 /// Spaces and periods are considered "blank"; all other glyphs are considered
 /// "marked". Leading and trailing newlines will be trimmed. The final trailing
-/// column of the last character **MUST** be present, so that it is the full
-/// five columns wide. See the example below.
+/// column of the last character **MUST** be present, even if it's all blanks,
+/// when using fixed-width font. See the example below.
 ///
 /// The full AoC font is not yet known, just enough to get Barney's answers. No
-/// guessing is performed; exact matched only. If parsing fails, an `Err` will
+/// guessing is performed; exact matches only. If parsing fails, an `Err` will
 /// be returned with a message about what went wrong, and some info on STDERR.
 ///
 /// ```
@@ -70,76 +122,61 @@ pub fn parse_block_letters(display: &str) -> Result<String, &str> {
         .trim_matches(['\n', '\r'])
         .chars()
         .map(|c| match c {
-            '.' => ' ',
-            ' ' | '\n' | '\r' => c,
-            _ => BLOCK,
+            ' ' => '.',
+            '.' | '\n' | '\r' => c,
+            _ => '#',
         })
         .collect::<Vec<_>>();
     let lines = sanitized.split(|&c| c == '\n').collect::<Vec<_>>();
-    if lines.len() != HEIGHT {
-        eprintln!(
-            "Block printed letters with height {}, not {HEIGHT}.",
-            lines.len()
-        );
-        eprintln!("{display}");
-        return Err("Block printed letters are always exactly six lines tall.");
-    }
+    let font = match lines.len() {
+        6 => font_5x6::get_font(),
+        8 => font_x8::get_font(),
+        10 => font_6x10::get_font(),
+        _ => {
+            eprintln!(
+                "Block printed letters with height {} are not supported.\n{display}",
+                lines.len()
+            );
+            return Err("Block printed letters of unsupported height.");
+        }
+    };
     let mut line_len = None;
     for (i, l) in lines.iter().enumerate() {
         let len = l.len();
         if let Some(ll) = line_len {
             if ll != len {
                 eprintln!(
-                    "Block printed line {i} has {len} characters, not {ll}.\n{}",
-                    display.replace(' ', ".")
+                    "Block printed line {} has {len} characters, not {ll}.\n{display}",
+                    i + 1
                 );
                 return Err("Block printed lines are always the same width.");
             }
-        } else if len % WIDTH != 0 {
-            eprintln!(
-                "Block printed line {i} has {len} characters, which isn't divisible by {WIDTH}.\n{}",
-                display.replace(' ', ".")
-            );
-            return Err("Block printed letters are always exactly five chars wide.");
+        } else if font.is_fixed_width() && !font.is_kerned() {
+            let w = font.width.unwrap();
+            if len % w != 0 {
+                eprintln!(
+                    "Block printed line {i} has {len} characters, which isn't divisible by {w}.\n{display}",
+                );
+                return Err("Block printed letters are always exactly five chars wide.");
+            }
         } else {
             line_len = Some(len)
         }
     }
-    let mut result = String::new();
-    if let Some(line_len) = line_len {
-        let mut buffer = String::new();
-        for i in (0..line_len).step_by(WIDTH) {
-            buffer.clear();
-            for l in lines.iter() {
-                buffer.extend(&l[i..(i + WIDTH)]);
-                buffer.push('\n');
-            }
-            // I remain confused why a &String doesn't coerce to &str, and requires
-            // an explicit [..] to slice it.
-            if let Some(&c) = BLOCK_GLYPHS.get(&buffer[..]) {
-                result.push(c)
-            } else {
-                eprintln!(
-                    "Block printed character wasn't recognized.\n[{}]",
-                    buffer.replace(' ', ".")
-                );
-                return Err("Failed to identify block-printed glyph.");
-            }
-        }
-        Ok(result)
-    } else {
-        Err("Unknown error.")
-    }
+    font.recognize(&lines)
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
 
-    #[test]
-    fn glyph_layouts() {
-        let char_len = WIDTH * HEIGHT + HEIGHT;
-        for (s, c) in BLOCK_GLYPHS.iter() {
+    pub fn assert_well_formed_glyphs(
+        glyphs: &HashMap<&'static str, char>,
+        height: usize,
+        width: usize,
+    ) {
+        let char_len = width * height + height;
+        for (s, c) in glyphs.iter() {
             let cl = s.chars().count();
             if cl != char_len {
                 panic!("Glyph for '{c}' is malformed: len {cl} not len {char_len}")
@@ -148,36 +185,83 @@ mod test {
     }
 
     #[test]
-    fn cockleburs() {
+    fn cockleburs_5x6() {
         let display = r"
- ██   ██   ██  █  █ █    ████ ███  █  █ ███   ███.
-█  █ █  █ █  █ █ █  █    X    █  █ █  █ █  █ █    
-█    █  █ █    ██   █    ###  ███  █  █ █  █ █    
-█    █  █ █    █ █  █    █    █  █ █  █ ███   ██  
-█  █ █  █ █  █ █ █  █    █    █  █ █  █ █ █     █ 
- ██   ██   ██  █  █ ████ ████ ███   ██  █  █ ███..
+.██...██...██..█..█.█....████.███..█..█.███...███.
+█..█.█..█.█..█.█.█..█....X....█..█.█..█.█..█.█....
+█....█..█.█....██...█....###..███..█..█.█..█.█....
+█....█..█.█....█.█..█....█....█..█.█..█.███...██..
+█..█.█..█.█..█.█.█..█....█....█..█.█..█.█.█.....█.
+.██...██...██..█..█.████.████.███...██..█..█.███..
 ";
         assert_eq!(Ok("COCKLEBURS".to_string()), parse_block_letters(display))
     }
 
     #[test]
+    fn raz_6x10() {
+        let display = r"
+█████.....██....██████
+█....█...█..█........█
+█....█..█....█.......█
+█....█..█....█......█.
+█████...█....█.....█..
+█..█....██████....█...
+█...█...█....█...█....
+█...█...█....█..█.....
+█....█..█....█..█.....
+█....█..█....█..██████";
+        assert_eq!(Ok("RAZ".to_string()), parse_block_letters(display))
+    }
+
+    #[test]
+    fn hi_x8() {
+        let display = r"
+█...█..███
+█...█...█.
+█...█...█.
+█████...█.
+█...█...█.
+█...█...█.
+█...█...█.
+█...█..███";
+        assert_eq!(Ok("HI".to_string()), parse_block_letters(display))
+    }
+
+    #[test]
     fn wrong_line_count() {
         // one of the "middle" lines is missing, so only five tall
-        let display = " ██  \n█  █ \n█    \n█  █ \n ██  ";
+        let display = "
+.██..
+█..█.
+█....
+█..█.
+.██..";
         assert!(parse_block_letters(display).is_err())
     }
 
     #[test]
     fn missing_trailing_spaces_first() {
         // first line is missing a trailing space
-        let display = " ██ \n█  █ \n█    \n█    \n█  █ \n ██  ";
+        let display = "
+.██.
+█..█.
+█....
+█....
+█..█.
+.██..";
         assert!(parse_block_letters(display).is_err())
     }
 
     #[test]
     fn missing_trailing_spaces_subsequent() {
         // second line is missing the final space
-        let display = " ██  \n█  █\n█    \n█    \n█  █ \n ██  ";
+        let display = "
+.██..
+█..█
+█....
+█....
+█..█.
+.██..";
         assert!(parse_block_letters(display).is_err())
     }
 }

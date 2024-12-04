@@ -65,27 +65,25 @@ as this may cause the server to rate-limit your user(s). Judicious use of
 
 ```
 % ./run_all.py
-Building............................................................Done!  138.77 ms
-                                                        | github | gmail
-2015 ====================================================================
-   1 Not Quite Lisp                                     |   ✔    |   ✔     857.30 ms
-   6 Probably a Fire Hazard                             |   ✔    |   ✔     870.90 ms
-  16 Aunt Sue                                           |   ✔    |   ✔     818.19 ms
-2016 ====================================================================
-  11 Radioisotope Thermoelectric Generators             |   ✔    |   ✔      5.49 sec
-  12 Leonardo's Monorail                                |   ✔    |   ✔     819.57 ms
-=========================================================================
-Success!                                                                    9.01 sec
+Building..................................................Done!  138.77 ms
+                                              | github | gmail
+2024 ==========================================================
+   2 Red-Nosed Reports                        |   ✔    |   ✔       2.06 ms
+   1 Historian Hysteria                       |   ✔    |   ✔     668.54 µs
+2015 ==========================================================
+   1 Not Quite Lisp                           |   ✔    |   ✔     251.92 µs
+===============================================================
+Success!  3 days x 2 accounts = 12 stars!                         2.54 sec
 ```
 
-Do note that "fast" solvers' times are significantly inflated by acquisition of
-puzzle input. The solver for _Not Quite Lisp_, for example, takes less than 30µs
-to execute (vs the ~430ms suggested above), once input is acquired:
+Note that "fast" solvers' times are appreciably inflated by reporting overhead.
+The solver for _Not Quite Lisp_ takes just under 20µs to execute (vs the ~125µs
+suggested above):
 
 ```
 % cargo run -r --bin not_quite_lisp --quiet
-     Part A:          280 (    23.041µs)
-     Part B:         1797 (     3.316µs)
+     Part A:          280 (    11.583µs)
+     Part B:         1797 (     5.875µs)
 ```
 
 ## Visualization

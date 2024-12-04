@@ -43,15 +43,6 @@ if len(sys.argv) > 1:
         day = year
         year = None
 
-TOKENS_FILE = environ["HOME"] + "/.config/aocd/tokens.json"
-with open(TOKENS_FILE, "r", encoding="utf-8") as f:
-    TOKENS = {p: t for p, t in json.load(f).items()}
-N_ACCOUNTS = len(TOKENS)
-W_ACCOUNT = max([len(p) for p in TOKENS])
-W_TITLE = 50
-W_DIV = 3
-WIDTH = W_TITLE + 5 + ((W_DIV + W_ACCOUNT) * N_ACCOUNTS)
-
 start_run = perf_counter_ns()
 to_run = compute_done()
 if year is not None:
@@ -67,6 +58,20 @@ elif day is not None:
 if not to_run:
     print("Nothing matched your filter?")
     exit(1)
+
+TOKENS_FILE = environ["HOME"] + "/.config/aocd/tokens.json"
+with open(TOKENS_FILE, "r", encoding="utf-8") as f:
+    TOKENS = {p: t for p, t in json.load(f).items()}
+N_ACCOUNTS = len(TOKENS)
+MIN_WIDTH = 72
+W_ACCOUNT = max([len(p) for p in TOKENS])
+W_TITLE = max([len(Puzzle(year=y, day=d).title) for y, d in to_run]) + 2
+W_DIV = 3
+WIDTH = W_TITLE + 5 + ((W_DIV + W_ACCOUNT) * N_ACCOUNTS)
+if WIDTH < MIN_WIDTH:
+    pad = MIN_WIDTH - WIDTH
+    W_TITLE += pad
+    WIDTH += pad
 
 print(f"{'Building':.<{WIDTH-30}}", end="", flush=True)
 subprocess.run(

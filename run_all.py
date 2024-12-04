@@ -128,7 +128,10 @@ for y, d in reversed(sorted(to_run)):
 print("=" * WIDTH)
 if exit_code == 0:
     fmt = GREEN
-    status = "Success!"
+    ds = len(to_run)
+    dl = "day" if ds == 1 else "days"
+    al = "account" if N_ACCOUNTS == 1 else "accounts"
+    status = f"Success!  {ds} {dl} x {N_ACCOUNTS} {al} = {ds * 2 * N_ACCOUNTS} stars!"
 else:
     fmt = RED + BOLD
     status = "Failed!"

@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 fn part_one(input: &str) -> usize {
@@ -70,9 +70,48 @@ fn part_one(input: &str) -> usize {
     count
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(input: &str) -> usize {
+    let grid: Vec<Vec<_>> = input.lines().map(|l| l.chars().collect()).collect();
+    let max_r = grid.len() - 1;
+    let max_c = grid[0].len() - 1;
+    let mut count = 0;
+    for r in 1..max_r {
+        for c in 1..max_c {
+            if grid[r][c] == 'A' {
+                match grid[r - 1][c - 1] {
+                    'M' => match grid[r - 1][c + 1] {
+                        'M' => {
+                            if grid[r + 1][c - 1] == 'S' && grid[r + 1][c + 1] == 'S' {
+                                count += 1;
+                            }
+                        }
+                        'S' => {
+                            if grid[r + 1][c - 1] == 'M' && grid[r + 1][c + 1] == 'S' {
+                                count += 1;
+                            }
+                        }
+                        _ => {}
+                    },
+                    'S' => match grid[r - 1][c + 1] {
+                        'M' => {
+                            if grid[r + 1][c - 1] == 'S' && grid[r + 1][c + 1] == 'M' {
+                                count += 1;
+                            }
+                        }
+                        'S' => {
+                            if grid[r + 1][c - 1] == 'M' && grid[r + 1][c + 1] == 'M' {
+                                count += 1;
+                            }
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
+            }
+        }
+    }
+    count
+}
 
 #[cfg(test)]
 mod test {
@@ -92,6 +131,7 @@ MXMXAXMASX"#;
     #[test]
     fn example_1() {
         assert_eq!(r"18", part_one(EXAMPLE_1).to_string());
+        assert_eq!(r"9", part_two(EXAMPLE_1).to_string());
     }
 
     #[test]

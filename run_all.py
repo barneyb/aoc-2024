@@ -73,11 +73,11 @@ if WIDTH < MIN_WIDTH:
     W_TITLE += pad
     WIDTH += pad
 
-print(f"{'Building':.<{WIDTH-30}}", end="", flush=True)
+print(f"{'Building':.<10}", end="", flush=True)
 subprocess.run(
     ["cargo", "build", "--tests", "--profile", "release", "--quiet"], check=True
 )
-print(f"{'Done!':.>30}{format_ns(perf_counter_ns() - start_run)}")
+print(f"{'Done!':.>{WIDTH-10}}{format_ns(perf_counter_ns() - start_run)}")
 row = ""
 for provider in TOKENS:
     row += f" | {provider:^{W_ACCOUNT}}"

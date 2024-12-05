@@ -18,6 +18,10 @@ if branch == "master":
     print("You're already on master?!")
     exit(2)
 subprocess.run(["cargo", "test", "--profile", "release"], check=True)
+ydm = re.compile(r"(\d{4})/(\d{1,2})").fullmatch(branch)
+if ydm:
+    # This is ridiculous. But it works!
+    subprocess.run(["./run_all.py", ydm.group(1), ydm.group(2)], check=True)
 subprocess.run(["git", "checkout", "master"], check=True)
 subprocess.run(["git", "pull"], check=True)
 if subprocess.run(["git", "merge", "--no-commit", branch]).returncode != 0:
@@ -55,4 +59,4 @@ subprocess.run(["git", "add", "README.md"], check=True)
 subprocess.run(["git", "commit", "--no-edit"], check=True)
 subprocess.run(["cargo", "test", "--profile", "release"], check=True)
 subprocess.run(["git", "push"], check=True)
-print(status)
+print(status, end="")  # it already has its own newline

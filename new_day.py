@@ -14,6 +14,7 @@ from lib import (
     FAINT,
     last_day_of_year,
     MAX_YEAR,
+    MIN_YEAR,
     puzzle_name,
     suggest_next,
 )
@@ -36,6 +37,8 @@ else:
         print(f"There's no day {day}?!")
         exit(1)
     if year == MAX_YEAR and day > last_day_of_year(year):
+        year -= 1
+    while year > MIN_YEAR and (year, day) in done:
         year -= 1
 zday = str(day) if day >= 10 else f"0{day}"
 branch_name = f"{year}/{zday}"

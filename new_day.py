@@ -12,10 +12,12 @@ from lib import (
     compute_done,
     END,
     FAINT,
+    GREEN,
     last_day_of_year,
     MAX_YEAR,
     MIN_YEAR,
     puzzle_name,
+    RED,
     suggest_next,
 )
 
@@ -160,7 +162,13 @@ if len(lines) > 1:
     else:
         print(f"{lo:8} min line length")
         print(f"{hi:8} max line length")
-print(f"{('DOES' if '-' in input_data else 'DOES NOT'):8} contain dashes")
+if "-" in input_data:
+    color = GREEN
+    msg = "DOES"
+else:
+    color = RED
+    msg = "does NOT"
+print(f"{color}{msg:8}{END} contain dashes")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title} {FAINT}({puzzle.url}){END}")
 print()

@@ -2,12 +2,22 @@ use crate::Part;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    tx.send(Part::A(part_one(input).to_string())).unwrap();
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
-fn part_one(_input: &str) -> usize {
-    99999
+fn part_one(input: &str) -> usize {
+    input.split(',').map(hash).sum()
+}
+
+fn hash(input: &str) -> usize {
+    let mut val = 0;
+    for c in input.chars() {
+        val += c as usize;
+        val *= 17;
+        val %= 256;
+    }
+    val
 }
 
 // fn part_two(input: &str) -> usize {
@@ -26,8 +36,13 @@ mod test {
         // assert_eq!(r"145", part_two(EXAMPLE_1).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2023, 15, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_hash() {
+        assert_eq!(52, hash("HASH"));
+    }
+
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2023, 15, do_solve).unwrap();
+    }
 }

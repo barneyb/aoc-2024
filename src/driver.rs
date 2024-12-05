@@ -154,8 +154,8 @@ impl Print {
         let (ans, lbl) = match part {
             Part::A(a) => (Some(a), pstyle.apply_to("Part A:".to_string())),
             Part::B(a) => (Some(a), pstyle.apply_to("Part B:".to_string())),
-            Part::Parse() => (None, self.parse_style.apply_to(format!("Parsed "))),
-            Part::Parsed(a) => (Some(a), self.parse_style.apply_to(format!("Parse:"))),
+            Part::Parse() => (None, self.parse_style.apply_to("Parsed ".to_string())),
+            Part::Parsed(a) => (Some(a), self.parse_style.apply_to("Parse:".to_string())),
             Part::Other(a) => (
                 Some(a),
                 self.other_style.apply_to(format!("Answer {count}:")),

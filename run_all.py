@@ -44,7 +44,7 @@ if len(sys.argv) > 1:
         year = None
 
 start_run = perf_counter_ns()
-to_run = compute_done()
+to_run = compute_done(include_working_copy=True)
 if year is not None:
     if day is None:
         to_run = {(y, d) for (y, d) in to_run if y == year}

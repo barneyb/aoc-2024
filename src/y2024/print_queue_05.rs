@@ -1,13 +1,60 @@
 use crate::Part;
+use std::collections::{HashMap, HashSet};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    let model = parse(input);
+    tx.send(Part::Parse()).unwrap();
+    tx.send(Part::A(part_one(&model).to_string())).unwrap();
+    // tx.send(Part::Other(part_two(&model).to_string())).unwrap();
 }
 
-fn part_one(_input: &str) -> usize {
-    99999
+#[derive(Debug)]
+struct Model {
+    non_precedence: HashMap<usize, HashSet<usize>>,
+    updates: Vec<Vec<usize>>,
+}
+
+fn parse(input: &str) -> Model {
+    let mut non_precedence: HashMap<_, HashSet<_>> = HashMap::new();
+    let mut updates = Vec::new();
+    let mut first_part = true;
+    for line in input.lines() {
+        if line == "" {
+            first_part = false;
+            continue;
+        }
+        if first_part {
+            let i = line.chars().position(|c| c == '|').unwrap();
+            let a: usize = line[0..i].parse().unwrap();
+            let b: usize = line[i + 1..line.len()].parse().unwrap();
+            non_precedence.entry(a).or_default().insert(b);
+        } else {
+            updates.push(line.split(',').map(|s| s.parse().unwrap()).collect())
+        }
+    }
+    Model {
+        non_precedence,
+        updates,
+    }
+}
+
+fn part_one(model: &Model) -> usize {
+    let mut seen = HashSet::new();
+    let mut sum = 0;
+    'outer: for update in &model.updates {
+        seen.clear();
+        for n in update {
+            if let Some(non_prec) = model.non_precedence.get(n) {
+                if !non_prec.is_disjoint(&seen) {
+                    continue 'outer;
+                }
+            }
+            seen.insert(*n);
+        }
+        sum += update[update.len() / 2];
+    }
+    sum
 }
 
 // fn part_two(input: &str) -> usize {
@@ -49,11 +96,13 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(r"143", part_one(EXAMPLE_1).to_string());
+        let model = parse(EXAMPLE_1);
+        println!("{model:?}");
+        assert_eq!(r"143", part_one(&model).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2024, 5, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2024, 5, do_solve).unwrap();
+    }
 }

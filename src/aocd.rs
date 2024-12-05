@@ -29,9 +29,9 @@ pub fn get_input(year: u32, day: u8) -> io::Result<String> {
 const SUBMIT_WRAPPER: &'static str = include_str!("aocd_submit_wrapper.py");
 
 pub(crate) fn submit_answer(year: u32, day: u8, part: &Part) -> io::Result<bool> {
-    let (p, a) = match part {
-        Part::A(a) => ("a", a),
-        Part::B(a) => ("b", a),
+    let (p, val) = match part {
+        Part::A(v) => ("a", v),
+        Part::B(v) => ("b", v),
         _ => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -46,7 +46,7 @@ pub(crate) fn submit_answer(year: u32, day: u8, part: &Part) -> io::Result<bool>
         .arg(year.to_string())
         .arg(day.to_string())
         .arg(p)
-        .arg(a.to_string())
+        .arg(val.to_string())
         .output()
         .expect("Failed to execute 'aocd'");
     if output.status.success() {

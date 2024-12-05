@@ -14,6 +14,7 @@ aoc_now = datetime.datetime.now(tz=AOC_TZ)
 MIN_YEAR = 2015
 MAX_YEAR = aoc_now.year if aoc_now.month == 12 else aoc_now.year - 1
 RED = "\033[0;31m"
+GREEN = "\033[0;32m"
 BOLD = "\033[1m"
 FAINT = "\033[2m"
 NEGATIVE = "\033[7m"
@@ -58,8 +59,7 @@ def compute_in_progress(done: set[YD] = None) -> set[YD]:
     return {
         (int(m.group(1)), int(m.group(2)))
         for m in [
-            re.fullmatch(pat, branch.strip())
-            for branch in branches.strip().splitlines()
+            re.fullmatch(pat, branch[2:]) for branch in branches.strip().splitlines()
         ]
         if m
     } - done
@@ -96,6 +96,16 @@ def load_deps() -> Deps:
         check=True,
     ).stdout.strip()
     return dict([(tuple(d), {tuple(d) for d in ds}) for [d, ds] in json.loads(s) if ds])
+
+
+def puzzle_name(puzzle):
+    name = puzzle.title.lower()
+    name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
+    name = re.sub("[^a-z0-9]+", "_", name)
+    name = name.strip("_")
+    if not name[0].isalpha():
+        name = "_" + name
+    return name
 
 
 def save_deps(deps: Deps):

@@ -12,22 +12,17 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
 fn steps_to(goal: (u32, u32), seed: u32, opt_tx: Option<Sender<Part>>) -> (usize, usize) {
     let mut queue = VecDeque::from([((1, 1), 0)]);
     let mut considered = HashSet::new();
-    let mut within_fifty = 0;
-    let mut sent_fifty = false;
+    let mut within_fifty = HashSet::new();
     while let Some((p, steps)) = queue.pop_front() {
-        if steps < 50 {
-            within_fifty += 1;
-        } else if !sent_fifty {
-            sent_fifty = true;
-            if let Some(tx) = &opt_tx {
-                tx.send(Part::B(within_fifty.to_string())).unwrap();
-            }
+        if steps <= 50 {
+            within_fifty.insert(p);
         }
         if p == goal {
             if let Some(tx) = &opt_tx {
                 tx.send(Part::A(steps.to_string())).unwrap();
+                tx.send(Part::B(within_fifty.len().to_string())).unwrap();
             }
-            return (steps, within_fifty);
+            return (steps, within_fifty.len());
         }
         let (x, y) = p;
         let s = steps + 1;
@@ -106,7 +101,6 @@ mod test {
 
     #[test]
     fn test_real_input() {
-        use crate::with_input;
-        with_input(2016, 13, do_solve).unwrap();
+        crate::with_input(2016, 13, do_solve).unwrap();
     }
 }

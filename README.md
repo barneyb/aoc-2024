@@ -12,15 +12,15 @@ This repo's current solve status:
  2015 │  *  .  .  .  .  *  .| .  .  .  .  .  .  .  .  *  .  .  .  .  .  .  .  .  . │   6
  2016 │  *  .  .  .  .  .  .  .  .  .  *  *  *| .  .  .  .  .  *  .  .  .  .  .  . │  10
  2017 │  *  *  .| .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  *  .  . │   6
- 2018 │  .  .  .  .  *  .  .  .  .  .  .| .  .  .  .  .  *  .  .  .  .  .  .  .  . │   4
+ 2018 │  .  .  .  .  *  .  .  .  .  *  .| .  .  .  .  .  *  .  .  .  .  .  .  .  . │   6
  2019 │  .  *  .  .  .  .  .  *  .| .  .  .  .  *  .  .  .  .  .  ?  .  .  .  .  . │   6
  2020 │  *  .  .  *  .  .  .  .  .  .  *  .| .  .  .  .  .  *  .  .  .  *  .  .  . │  10
  2021 │  .  *  .  .| .  .  *  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . │   4
  2022 │  .  .  .  .  .  .  .  .  *  .  .  .  *  .| .  .  .  .  .  *  .  .  .  .  . │   6
  2023 │  *  .  *  .| .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  *  .  . │   6
- 2024 │  *|                                                                        │   2
+ 2024 │  *  *| *  *                                                                │   8
 ──────┼────────────────────────────────────────────────────────────────────────────┼─────
-      │ 12  6  2  2  2  2  2  2| 2  .  4  2  4  2  .  2  2  2  2  2  .  2  4  .  . │  60
+      │ 12  8  4  4  2  2  2| 2  2  2  4  2  4  2  .  2  2  2  2  2  .  2  4  .  . │  68
   Next? Donut Maze (https://adventofcode.com/2019/day/20)
 </pre>
 
@@ -54,6 +54,36 @@ While there are binary solvers, a given solver module's tests are where to start
 
 When your token expires in ~30 days, you'll get completely non-handled 400 HTTP
 errors. Go update your token.
+
+## Multi-Account Verification
+
+If you're especially masochistic, you can configure `aocd` with multiple account
+tokens and run them all across every solver, all at once. Be careful, however,
+as this may cause the server to rate-limit your user(s). Judicious use of
+`Ctrl-C` is advised, until you have inputs and answers cached locally.
+
+```
+% ./run_all.py
+Building..................................................Done!  138.77 ms
+                                              | github | gmail
+2024 ==========================================================
+   2 Red-Nosed Reports                        |   ✔    |   ✔       2.06 ms
+   1 Historian Hysteria                       |   ✔    |   ✔     668.54 µs
+2015 ==========================================================
+   1 Not Quite Lisp                           |   ✔    |   ✔     251.92 µs
+===============================================================
+Success!  3 days x 2 accounts = 12 stars!                         2.54 sec
+```
+
+Note that "fast" solvers' times are appreciably inflated by reporting overhead.
+The solver for _Not Quite Lisp_ takes just under 20µs to execute (vs the ~125µs
+suggested above):
+
+```
+% cargo run -r --bin not_quite_lisp --quiet
+     Part A:          280 (    11.583µs)
+     Part B:         1797 (     5.875µs)
+```
 
 ## Visualization
 

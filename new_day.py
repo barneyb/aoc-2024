@@ -14,6 +14,7 @@ from lib import (
     FAINT,
     last_day_of_year,
     MAX_YEAR,
+    puzzle_name,
     suggest_next,
 )
 
@@ -53,12 +54,7 @@ if branch_exists:
     print(f"You already have a '{branch_name}' branch?!")
     exit(3)
 input_data = puzzle.input_data  # do this early, to fail on a bad token
-name = puzzle.title.lower()
-name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
-name = re.sub("[^a-z0-9]+", "_", name)
-name = name.strip("_")
-if not name[0].isalpha():
-    name = "_" + name
+name = puzzle_name(puzzle)
 print(f"{year} Day {day}: {puzzle.title}")
 
 # first, ensure we're ready to start a new day...
@@ -161,6 +157,7 @@ if len(lines) > 1:
     else:
         print(f"{lo:8} min line length")
         print(f"{hi:8} max line length")
+print(f"{('DOES' if '-' in input_data else 'DOES NOT'):8} contain dashes")
 print("-" * 80)
 print(f"{year} Day {day}: {puzzle.title} {FAINT}({puzzle.url}){END}")
 print()

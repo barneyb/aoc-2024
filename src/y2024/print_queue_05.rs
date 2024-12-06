@@ -6,7 +6,7 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     let model = parse(input);
     tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&model).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(&model).to_string())).unwrap();
+    tx.send(Part::B(part_two(&model).to_string())).unwrap();
 }
 
 #[derive(Debug)]
@@ -39,27 +39,53 @@ fn parse(input: &str) -> Model {
     }
 }
 
-fn part_one(model: &Model) -> usize {
-    let mut seen = HashSet::new();
-    let mut sum = 0;
-    'outer: for update in &model.updates {
-        seen.clear();
-        for n in update {
-            if let Some(non_prec) = model.non_precedence.get(n) {
+impl Model {
+    fn first_misordered_index(&self, update: &[usize]) -> Option<usize> {
+        let mut seen = HashSet::new();
+        for (i, n) in update.iter().enumerate() {
+            if let Some(non_prec) = self.non_precedence.get(n) {
                 if !non_prec.is_disjoint(&seen) {
-                    continue 'outer;
+                    return Some(i);
                 }
             }
             seen.insert(*n);
         }
-        sum += update[update.len() / 2];
+        None
+    }
+
+    fn is_ordered(&self, update: &[usize]) -> bool {
+        self.first_misordered_index(update).is_none()
+    }
+
+    fn reorder(&self, update: &Vec<usize>) -> Vec<usize> {
+        let mut update = update.clone();
+        while let Some(i) = self.first_misordered_index(&update) {
+            update.swap(i, i - 1)
+        }
+        update
+    }
+}
+
+fn part_one(model: &Model) -> usize {
+    let mut sum = 0;
+    for update in &model.updates {
+        if model.is_ordered(update) {
+            sum += update[update.len() / 2];
+        }
     }
     sum
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(model: &Model) -> usize {
+    let mut sum = 0;
+    for update in &model.updates {
+        if !model.is_ordered(update) {
+            let update = model.reorder(update);
+            sum += update[update.len() / 2];
+        }
+    }
+    sum
+}
 
 #[cfg(test)]
 mod test {
@@ -97,8 +123,8 @@ mod test {
     #[test]
     fn example_1() {
         let model = parse(EXAMPLE_1);
-        println!("{model:?}");
         assert_eq!(r"143", part_one(&model).to_string());
+        assert_eq!(r"123", part_two(&model).to_string());
     }
 
     #[test]

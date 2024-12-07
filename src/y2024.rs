@@ -1,3 +1,4 @@
+pub mod bridge_repair_07;
 pub mod ceres_search_04;
 pub mod guard_gallivant_06;
 pub mod historian_hysteria_01;

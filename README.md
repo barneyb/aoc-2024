@@ -21,6 +21,7 @@ This repo's current solve status:
  2024 │  *  *  *| *  *  *  ?                                                       │  12
 ──────┼────────────────────────────────────────────────────────────────────────────┼─────
       │ 16  8  4  4  4  4  2| 2  2  2  4  2  4  2  .  2  2  2  2  2  .  2  4  .  . │  76
+  Prog! Bridge Repair (https://adventofcode.com/2024/day/7)
   Prog! Lens Library (https://adventofcode.com/2023/day/15)
   Next? Bridge Repair (https://adventofcode.com/2024/day/7)
 </pre>

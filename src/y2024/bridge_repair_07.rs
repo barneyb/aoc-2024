@@ -1,10 +1,19 @@
 use crate::Part;
+use std::ops::{Add, Mul};
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    let equations: Vec<_> = parse(input);
+    tx.send(Part::A(part_one(&equations).to_string())).unwrap();
+    tx.send(Part::B(part_two(&equations).to_string())).unwrap();
+}
+
+fn parse(input: &str) -> Vec<Equation> {
+    input
+        .lines()
+        .map(|l| Equation::from_str(l).unwrap())
+        .collect()
 }
 
 struct Equation {
@@ -36,13 +45,17 @@ impl Equation {
         Equation { answer, terms }
     }
 
-    fn is_valid(&self) -> bool {
+    fn is_valid<Op>(&self, operators: &[Op]) -> bool
+    where
+        Op: Fn(usize, usize) -> usize,
+    {
         let mut curr = Vec::from([self.terms[0]]);
-        for a in &self.terms[1..] {
+        for &right in &self.terms[1..] {
             let mut next = Vec::with_capacity(curr.len() * 2);
-            for b in curr {
-                next.push(a + b);
-                next.push(a * b);
+            for left in curr {
+                for op in operators {
+                    next.push(op(left, right));
+                }
             }
             curr = next;
         }
@@ -50,18 +63,33 @@ impl Equation {
     }
 }
 
-fn part_one(input: &str) -> usize {
-    input
-        .lines()
-        .map(|l| Equation::from_str(l).unwrap())
-        .filter(|e| e.is_valid())
-        .map(|e| e.answer)
-        .sum()
+fn either_part<F>(equations: &Vec<Equation>, test: F) -> usize
+where
+    F: Fn(&&Equation) -> bool,
+{
+    equations.iter().filter(test).map(|e| e.answer).sum()
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_one(equations: &Vec<Equation>) -> usize {
+    either_part(equations, |e| e.is_valid(&vec![usize::add, usize::mul]))
+}
+
+fn concat(a: usize, b: usize) -> usize {
+    if b < 10 {
+        a * 10 + b
+    } else if b < 100 {
+        a * 100 + b
+    } else {
+        // nothing over a thousand
+        a * 1000 + b
+    }
+}
+
+fn part_two(equations: &Vec<Equation>) -> usize {
+    either_part(equations, |e| {
+        e.is_valid(&vec![usize::add, usize::mul, concat])
+    })
+}
 
 #[cfg(test)]
 mod test {
@@ -79,13 +107,36 @@ mod test {
 
     #[test]
     fn test_is_valid() {
-        assert!(Equation::new(292, vec![11, 6, 16, 20],).is_valid());
-        assert!(!Equation::new(161011, vec![16, 10, 13],).is_valid());
+        assert!(Equation::new(292, vec![11, 6, 16, 20],).is_valid(&vec![usize::add, usize::mul]));
+        assert!(!Equation::new(161011, vec![16, 10, 13],).is_valid(&vec![usize::add, usize::mul]));
+    }
+
+    #[test]
+    fn test_concat() {
+        assert_eq!(156, concat(15, 6));
+        assert_eq!(516, concat(5, 16));
+        assert_eq!(123456, concat(123, 456));
+    }
+
+    #[test]
+    fn test_is_valid_with_concat() {
+        assert!(Equation::new(7290, vec![6, 8, 6, 15],).is_valid(&vec![
+            usize::add,
+            usize::mul,
+            concat
+        ]));
+        assert!(!Equation::new(161011, vec![16, 10, 13],).is_valid(&vec![
+            usize::add,
+            usize::mul,
+            concat
+        ]));
     }
 
     #[test]
     fn example_1() {
-        assert_eq!(r"3749", part_one(EXAMPLE_1).to_string());
+        let eqs = parse(EXAMPLE_1);
+        assert_eq!(r"3749", part_one(&eqs).to_string());
+        assert_eq!(r"11387", part_two(&eqs).to_string());
     }
 
     #[test]

@@ -203,10 +203,12 @@ fn part_two(model: &Model) -> usize {
             h = h.turn_right();
             continue;
         }
-        let mut scratch = model.clone();
-        scratch.obs_by_x.entry(next.x).or_default().push(next.y);
-        if let Err(_) = do_walk(&scratch) {
-            positions.insert(next);
+        if !positions.contains(&next) {
+            let mut scratch = model.clone();
+            scratch.obs_by_x.entry(next.x).or_default().push(next.y);
+            if let Err(_) = do_walk(&scratch) {
+                positions.insert(next);
+            }
         }
         pos = next;
         if model.at_edge(pos) {

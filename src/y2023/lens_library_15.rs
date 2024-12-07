@@ -1,9 +1,11 @@
 use crate::Part;
 use std::sync::mpsc::Sender;
+use symbol_table::Symbol;
+use symbol_table::SymbolTable;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 fn part_one(input: &str) -> usize {
@@ -20,9 +22,39 @@ fn hash(input: &str) -> usize {
     val
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(input: &str) -> usize {
+    let mut map: Vec<Vec<(Symbol, usize)>> = vec![Vec::new(); 256];
+    let symbols = SymbolTable::new();
+    for ins in input.split(',') {
+        let i = ins.chars().position(|c| c == '-' || c == '=').unwrap();
+        let op = ins.chars().nth(i).unwrap();
+        let lbl = &ins[0..i];
+        let sym = symbols.intern(lbl);
+        let bin = map.get_mut(hash(lbl)).unwrap();
+        let opt_i = bin.iter().position(|(s, _)| *s == sym);
+        if op == '-' {
+            if let Some(i) = opt_i {
+                bin.remove(i);
+            }
+        } else {
+            let pair = (sym, ins[(i + 1)..].parse().unwrap());
+            if let Some(i) = opt_i {
+                bin[i] = pair;
+            } else {
+                bin.push(pair);
+            }
+        }
+    }
+    map.iter()
+        .enumerate()
+        .map(|(bin_n, bin)| {
+            bin.iter()
+                .enumerate()
+                .map(|(slot_n, (_, fl))| (bin_n + 1) * (slot_n + 1) * fl)
+                .sum::<usize>()
+        })
+        .sum()
+}
 
 #[cfg(test)]
 mod test {
@@ -33,7 +65,7 @@ mod test {
     #[test]
     fn example_1() {
         assert_eq!(r"1320", part_one(EXAMPLE_1).to_string());
-        // assert_eq!(r"145", part_two(EXAMPLE_1).to_string());
+        assert_eq!(r"145", part_two(EXAMPLE_1).to_string());
     }
 
     #[test]

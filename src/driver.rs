@@ -136,13 +136,11 @@ impl Print {
             other_style: Style::new().on_yellow(),
             ans_style: Style::new().underlined(),
             time_style: Style::new().dim(),
-            ans_count: AtomicUsize::new(0),
+            ans_count: AtomicUsize::new(1),
         }
     }
 
     fn print(&self, year: u32, day: u8, part: &Part, duration: Duration) -> bool {
-        // This is a bit aggro, but whatever.
-        self.ans_count.fetch_add(1, Ordering::SeqCst);
         let count = self.ans_count.load(Ordering::SeqCst);
         let correct =
             submit(year, day, part).expect("Answer should submit without error, valid or not.");
@@ -161,6 +159,10 @@ impl Print {
                 self.other_style.apply_to(format!("Answer {count}:")),
             ),
         };
+        if let Some(_) = ans {
+            // This is a bit aggro, but whatever.
+            self.ans_count.fetch_add(1, Ordering::SeqCst);
+        }
         match ans {
             None => {
                 println!(

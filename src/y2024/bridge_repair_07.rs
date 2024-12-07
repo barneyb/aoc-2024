@@ -1,0 +1,40 @@
+use crate::Part;
+use std::sync::mpsc::Sender;
+
+pub fn do_solve(input: &str, tx: Sender<Part>) {
+    tx.send(Part::Other(part_one(input).to_string())).unwrap();
+    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+}
+
+fn part_one(_input: &str) -> usize {
+    99999
+}
+
+// fn part_two(input: &str) -> usize {
+//     99999
+// }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    const EXAMPLE_1: &str = r#"190: 10 19
+3267: 81 40 27
+83: 17 5
+156: 15 6
+7290: 6 8 6 15
+161011: 16 10 13
+192: 17 8 14
+21037: 9 7 18 13
+292: 11 6 16 20"#;
+
+    #[test]
+    fn example_1() {
+        assert_eq!(r"3749", part_one(EXAMPLE_1).to_string());
+    }
+
+    // #[test]
+    // fn test_real_input() {
+    //     crate::with_input(2024, 7, do_solve).unwrap();
+    // }
+}

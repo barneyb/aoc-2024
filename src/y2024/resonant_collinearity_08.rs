@@ -2,14 +2,15 @@ use crate::block_print::BLOCK;
 use crate::Part;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::ops::{Add, Sub};
+use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+use std::str::FromStr;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    let model = parse(input);
+    let model = input.parse().unwrap();
     tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&model).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(&model).to_string())).unwrap();
+    tx.send(Part::B(part_two(&model).to_string())).unwrap();
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
@@ -38,6 +39,13 @@ impl Add for Pt {
     }
 }
 
+impl AddAssign for Pt {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x = self.x + rhs.x;
+        self.y = self.y + rhs.y;
+    }
+}
+
 impl Sub for Pt {
     type Output = Pt;
 
@@ -46,108 +54,139 @@ impl Sub for Pt {
     }
 }
 
+impl SubAssign for Pt {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x = self.x - rhs.x;
+        self.y = self.y - rhs.y;
+    }
+}
+
+impl Neg for Pt {
+    type Output = Pt;
+
+    fn neg(self) -> Self::Output {
+        Pt::new(-self.x, -self.y)
+    }
+}
+
 struct Model {
     antennas: HashMap<char, Vec<Pt>>,
     bounds: Pt,
 }
 
-fn parse(input: &str) -> Model {
-    let mut antennas: HashMap<_, Vec<_>> = HashMap::new();
-    let mut max_x = 0;
-    let mut max_y = 0;
-    for (y, line) in input.lines().enumerate() {
-        if y == 0 {
-            max_x = line.len() - 1;
-        }
-        for (x, c) in line.chars().enumerate() {
-            if c == '.' {
-                continue;
+impl FromStr for Model {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Self, Self::Err> {
+        let mut antennas: HashMap<_, Vec<_>> = HashMap::new();
+        let mut max_x = 0;
+        let mut max_y = 0;
+        for (y, line) in input.lines().enumerate() {
+            if y == 0 {
+                max_x = line.len() - 1;
             }
-            antennas
-                .entry(c)
-                .or_default()
-                .push(Pt::new(x as isize, y as isize))
+            for (x, c) in line.chars().enumerate() {
+                if c == '.' {
+                    continue;
+                }
+                antennas
+                    .entry(c)
+                    .or_default()
+                    .push(Pt::new(x as isize, y as isize))
+            }
+            max_y = y;
         }
-        max_y = y;
+        Ok(Model {
+            antennas,
+            bounds: Pt::new(max_x as isize, max_y as isize),
+        })
     }
-    Model {
-        antennas,
-        bounds: Pt::new(max_x as isize, max_y as isize),
+}
+
+impl Model {
+    fn is_within_area(&self, p: &Pt) -> bool {
+        if p.x < 0 || p.y < 0 {
+            return false;
+        }
+        p.x <= self.bounds.x && p.y <= self.bounds.y
+    }
+
+    #[allow(dead_code)]
+    fn draw_freq(&self, freq: &char, antinodes: &HashSet<Pt>) {
+        let Pt { x: max_x, y: max_y } = self.bounds;
+        let ann: HashSet<_> = if let Some(ann) = self.antennas.get(freq) {
+            ann.iter().collect()
+        } else {
+            Default::default()
+        };
+        print!("   ");
+        for x in (0..=max_x).step_by(5) {
+            print!("|{x:>2}  ")
+        }
+        for y in 0..=max_y {
+            print!("\n{y:>2} ");
+            for x in 0..=max_x {
+                let p = Pt::new(x, y);
+                print!(
+                    "{}",
+                    if antinodes.contains(&p) {
+                        if ann.contains(&p) {
+                            BLOCK
+                        } else {
+                            '#'
+                        }
+                    } else if ann.contains(&p) {
+                        *freq
+                    } else {
+                        '.'
+                    }
+                )
+            }
+        }
+        println!()
     }
 }
 
 fn part_one(model: &Model) -> usize {
     let mut antinodes = HashSet::new();
-    // println!("{}: {:?}", model.antennas.len(), model.antennas.keys());
     for anns in model.antennas.values() {
-        let mut anti = HashSet::new();
-        // println!("Freq {freq}: {} antennas", anns.len());
         for (i, &a) in anns.iter().enumerate() {
-            // println!("   {a}");
             for &b in &anns[(i + 1)..] {
                 let md = b - a;
-                let lo = a - md;
-                let hi = b + md;
-                // println!("      {b} delta {md} -> {lo} & {hi}");
-                anti.insert(lo);
-                anti.insert(hi);
+                for c in [a + -md, b + md] {
+                    if model.is_within_area(&c) {
+                        antinodes.insert(c);
+                    }
+                }
             }
         }
-        // assert_eq!((anns.len() * (anns.len() - 1)), anti.len());
-        // if *freq == 'A' || *freq == 'l' {
-        //     draw_freq(model, freq, &anti)
-        // }
-        antinodes.extend(anti);
     }
-    // println!("{antinodes:?}");
-    let Pt { x: max_x, y: max_y } = model.bounds;
-    antinodes = antinodes
-        .into_iter()
-        .filter(|p| p.x >= 0 && p.x <= max_x && p.y >= 0 && p.y <= max_y)
-        .collect();
-    // println!("{antinodes:?}");
-    // draw_freq(model, &' ', &antinodes);
     antinodes.len()
 }
 
-#[allow(dead_code)]
-fn draw_freq(model: &Model, freq: &char, antinodes: &HashSet<Pt>) {
-    let Pt { x: max_x, y: max_y } = model.bounds;
-    let ann: HashSet<_> = if let Some(ann) = model.antennas.get(freq) {
-        ann.iter().collect()
-    } else {
-        Default::default()
-    };
-    print!("   ");
-    for x in (0..=max_x).step_by(5) {
-        print!("|{x:>2}  ")
-    }
-    for y in 0..=max_y {
-        print!("\n{y:>2} ");
-        for x in 0..=max_x {
-            let p = Pt::new(x, y);
-            print!(
-                "{}",
-                if antinodes.contains(&p) {
-                    if ann.contains(&p) {
-                        BLOCK
-                    } else {
-                        '#'
-                    }
-                } else if ann.contains(&p) {
-                    *freq
-                } else {
-                    '.'
+fn part_two(model: &Model) -> usize {
+    let mut antinodes = HashSet::new();
+    for anns in model.antennas.values() {
+        for (i, &a) in anns.iter().enumerate() {
+            antinodes.insert(a);
+            for &b in &anns[(i + 1)..] {
+                antinodes.insert(b);
+                let md = b - a;
+                let mut c = a - md;
+                while model.is_within_area(&c) {
+                    antinodes.insert(c);
+                    c -= md;
                 }
-            )
+                c = b + md;
+                while model.is_within_area(&c) {
+                    antinodes.insert(c);
+                    c += md;
+                }
+            }
         }
     }
-    println!()
+    antinodes.len()
 }
-
-// fn part_two(model: &Model) -> usize {
-//     99999
-// }
 
 #[cfg(test)]
 mod test {
@@ -168,8 +207,9 @@ mod test {
 
     #[test]
     fn example_1() {
-        let model = parse(EXAMPLE_1);
+        let model = EXAMPLE_1.parse().unwrap();
         assert_eq!(r"14", part_one(&model).to_string());
+        assert_eq!(r"34", part_two(&model).to_string());
     }
 
     #[test]

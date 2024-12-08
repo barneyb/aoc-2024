@@ -1,17 +1,17 @@
 use crate::geom2d::Dir;
 use crate::Part;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    let model = input.parse().unwrap();
+    let mut model = input.parse().unwrap();
     tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&model).unwrap().to_string()))
         .unwrap();
-    tx.send(Part::B(part_two(&model).to_string())).unwrap();
+    tx.send(Part::B(part_two(&mut model).to_string())).unwrap();
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
@@ -53,7 +53,6 @@ impl Pt {
     }
 }
 
-#[derive(Clone)]
 struct Model {
     /// where the guard started
     guard: Pt,
@@ -61,9 +60,11 @@ struct Model {
     heading: Dir,
     /// max x,y values of the area. Min are 0,0
     bounds: Pt,
-    /// y-coordinates of obstructions, keyed by their x-coord. Vec means linear
-    /// scans, but HashSet's clone overhead is slower.
-    obs_by_x: HashMap<usize, Vec<usize>>,
+    /// y-coordinates of obstructions, keyed by their x-coord. Vec means O(n),
+    /// but n is small enough that HashSet's O(1) dominates.
+    obs_by_x: Vec<Vec<usize>>,
+    /// a single extra obstruction, in addition to the above.
+    extra_obs: Option<Pt>,
 }
 
 impl Display for Model {
@@ -83,7 +84,7 @@ impl Display for Model {
                 if guard.x == x && guard.y == y {
                     write!(f, "{heading}")?;
                 } else {
-                    if let Some(ys) = obs_by_x.get(&x) {
+                    if let Some(ys) = obs_by_x.get(x) {
                         if ys.contains(&y) {
                             write!(f, "#")?;
                             continue;
@@ -103,10 +104,19 @@ impl FromStr for Model {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut guard = None;
         let mut heading = None;
-        let mut obs_by_x: HashMap<_, Vec<_>> = HashMap::new();
+        let mut obs_by_x: Vec<Vec<_>> = Vec::new();
         // let mut obs_by_y: HashMap<_, Vec<_>> = HashMap::new();
         let mut max_y = 0;
+        let mut max_x = None;
         for (y, line) in s.lines().enumerate() {
+            if y == 0 {
+                let l = line.len();
+                max_x = Some(l - 1);
+                obs_by_x.reserve(l);
+                for _ in 0..=l {
+                    obs_by_x.push(Vec::new());
+                }
+            }
             for (x, c) in line.chars().enumerate() {
                 match c {
                     '^' => {
@@ -119,8 +129,7 @@ impl FromStr for Model {
                         }
                     }
                     '#' => {
-                        obs_by_x.entry(x).or_default().push(y);
-                        // obs_by_y.entry(y).or_default().push(x);
+                        obs_by_x[x].push(y);
                     }
                     '.' => {}
                     _ => {
@@ -131,14 +140,13 @@ impl FromStr for Model {
             }
             max_y = y;
         }
-        let max_x = obs_by_x.keys().max().unwrap();
         if let Some(guard) = guard {
             Ok(Model {
                 guard,
                 heading: heading.unwrap(),
-                bounds: Pt::new(*max_x, max_y),
+                bounds: Pt::new(max_x.unwrap(), max_y),
                 obs_by_x,
-                // obs_by_y,
+                extra_obs: None,
             })
         } else {
             Err("Didn't find the guard?!")
@@ -148,14 +156,32 @@ impl FromStr for Model {
 
 impl Model {
     fn is_obstacle(&self, p: Pt) -> bool {
-        if let Some(ys) = self.obs_by_x.get(&p.x) {
-            return ys.contains(&p.y);
+        if let Some(e) = self.extra_obs {
+            if p == e {
+                return true;
+            }
         }
-        false
+        self.obs_by_x[p.x].contains(&p.y)
     }
 
     fn at_edge(&self, p: Pt) -> bool {
         p.y == 0 || p.x == self.bounds.x || p.y == self.bounds.y || p.x == 0
+    }
+
+    fn add_obstruction(&mut self, p: Pt) {
+        if let Some(e) = self.extra_obs {
+            panic!("There's already an extra obstruction at {e}?!");
+        } else {
+            self.extra_obs = Some(p);
+        }
+    }
+
+    fn clear_obstruction(&mut self) {
+        if let None = self.extra_obs {
+            panic!("There's no extra obstruction to clear?!")
+        } else {
+            self.extra_obs = None;
+        }
     }
 }
 
@@ -193,7 +219,7 @@ fn part_one(model: &Model) -> Result<usize, (Pt, Dir)> {
     }
 }
 
-fn part_two(model: &Model) -> usize {
+fn part_two(model: &mut Model) -> usize {
     let mut pos = model.guard;
     let mut h = model.heading;
     let mut positions = HashSet::<Pt>::new();
@@ -204,11 +230,11 @@ fn part_two(model: &Model) -> usize {
             continue;
         }
         if !positions.contains(&next) {
-            let mut scratch = model.clone();
-            scratch.obs_by_x.entry(next.x).or_default().push(next.y);
-            if let Err(_) = do_walk(&scratch) {
+            model.add_obstruction(next);
+            if let Err(_) = do_walk(&model) {
                 positions.insert(next);
             }
+            model.clear_obstruction();
         }
         pos = next;
         if model.at_edge(pos) {

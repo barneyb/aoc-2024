@@ -8,7 +8,7 @@ from string import Template
 from aocd.models import Puzzle
 
 from lib import (
-    aoc_now,
+    AOC_NOW,
     compute_done,
     END,
     FAINT,
@@ -32,7 +32,7 @@ if len(sys.argv) == 1:
 else:
     # grab the params, interpret, and error-correct
     year = int(sys.argv[2]) if len(sys.argv) >= 3 else MAX_YEAR
-    day = int(sys.argv[1]) if len(sys.argv) >= 2 else aoc_now.day
+    day = int(sys.argv[1]) if len(sys.argv) >= 2 else AOC_NOW.day
     if year < day:
         (year, day) = (day, year)
     if day > 25:
@@ -251,7 +251,7 @@ fn main() -> Result<(), Error> {
 subprocess.run(["cargo", "fmt"], check=True)
 subprocess.run(["cargo", "run", "--bin", name], check=True)
 subprocess.run(["git", "add", module_filename, binary_filename], check=True)
-day_spec = f"day {day}" if year == aoc_now.year else f"{year} day {day}"
+day_spec = f"day {day}" if year == AOC_NOW.year else f"{year} day {day}"
 subprocess.run(
     ["git", "commit", "-am", f"skeleton for {day_spec}: {puzzle.title}"], check=True
 )

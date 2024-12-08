@@ -10,16 +10,65 @@ YD = (int, int)
 Deps = dict[YD, set[YD]]
 
 AOC_TZ = ZoneInfo("America/New_York")
-aoc_now = datetime.datetime.now(tz=AOC_TZ)
+AOC_NOW = datetime.datetime.now(tz=AOC_TZ)
 MIN_YEAR = 2015
-MAX_YEAR = aoc_now.year if aoc_now.month == 12 else aoc_now.year - 1
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-BOLD = "\033[1m"
-FAINT = "\033[2m"
-NEGATIVE = "\033[7m"
-END = "\033[0m"
+MAX_YEAR = AOC_NOW.year if AOC_NOW.month == 12 else AOC_NOW.year - 1
 DEPS_FILE = ".deps.json"
+
+
+class Colors:
+    """ANSI color codes"""
+
+    BLACK = "\033[0;30m"
+    RED = "\033[0;31m"
+    GREEN = "\033[0;32m"
+    BROWN = "\033[0;33m"
+    BLUE = "\033[0;34m"
+    PURPLE = "\033[0;35m"
+    CYAN = "\033[0;36m"
+    LIGHT_GRAY = "\033[0;37m"
+    DARK_GRAY = "\033[1;30m"
+    LIGHT_RED = "\033[1;31m"
+    LIGHT_GREEN = "\033[1;32m"
+    YELLOW = "\033[1;33m"
+    LIGHT_BLUE = "\033[1;34m"
+    LIGHT_PURPLE = "\033[1;35m"
+    LIGHT_CYAN = "\033[1;36m"
+    LIGHT_WHITE = "\033[1;37m"
+    BOLD = "\033[1m"
+    FAINT = "\033[2m"
+    ITALIC = "\033[3m"
+    UNDERLINE = "\033[4m"
+    BLINK = "\033[5m"
+    NEGATIVE = "\033[7m"
+    CROSSED = "\033[9m"
+    END = "\033[0m"
+    # cancel SGR codes if we don't write to a terminal
+    if not __import__("sys").stdout.isatty():
+        for _ in dir():
+            if isinstance(_, str) and _[0] != "_":
+                locals()[_] = ""
+    else:
+        # set Windows console in VT mode
+        if __import__("platform").system() == "Windows":
+            kernel32 = __import__("ctypes").windll.kernel32
+            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+            del kernel32
+
+
+BLUE = Colors.BLUE
+GREEN = Colors.GREEN
+LIGHT_RED = Colors.LIGHT_RED
+RED = Colors.RED
+
+BOLD = Colors.BOLD
+FAINT = Colors.FAINT
+NEGATIVE = Colors.NEGATIVE
+END = Colors.END
+
+
+def colored(text, *colors):
+    return f"{''.join(colors)}{text}{Colors.END}"
 
 
 def compute_done(*, include_working_copy: bool = False) -> set[YD]:
@@ -83,7 +132,7 @@ def current_yd():
 
 
 def last_day_of_year(year):
-    return min(25, aoc_now.day) if year == aoc_now.year else 25
+    return min(25, AOC_NOW.day) if year == AOC_NOW.year else 25
 
 
 def load_deps() -> Deps:
@@ -161,7 +210,7 @@ def suggest_next(done: set[YD] = None, in_progress: set[YD] = None) -> YD:
     if not done:
         return MIN_YEAR, 1
     # this year next!
-    if aoc_now.year == MAX_YEAR:
+    if AOC_NOW.year == MAX_YEAR:
         for d in range(last_day_of_year(MAX_YEAR), 0, -1):
             day = MAX_YEAR, d
             if day not in done:

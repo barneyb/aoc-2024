@@ -9,7 +9,19 @@ from time import perf_counter_ns
 # noinspection PyUnresolvedReferences
 from aocd.models import Puzzle
 
-from lib import BOLD, compute_done, END, FAINT, GREEN, puzzle_name, RED
+from lib import (
+    BLUE,
+    BOLD,
+    colored,
+    Colors,
+    compute_done,
+    END,
+    FAINT,
+    GREEN,
+    LIGHT_RED,
+    puzzle_name,
+    RED,
+)
 
 NANOS_PER_MICROSECOND = 1_000
 NANOS_PER_MILLISECOND = NANOS_PER_MICROSECOND * 1_000
@@ -22,13 +34,13 @@ def format_ns(nanos):
     11 characters long, including the units.
     """
     if nanos > NANOS_PER_MINUTE:
-        return f"{nanos / NANOS_PER_MINUTE :>7,.2f} min"
+        return f"{RED}{nanos / NANOS_PER_MINUTE :>7,.2f} min{END}"
     if nanos > NANOS_PER_SEC:
-        return f"{nanos / NANOS_PER_SEC :>7,.2f} sec"
+        return f"{LIGHT_RED}{nanos / NANOS_PER_SEC :>7,.2f} sec{END}"
     if nanos > NANOS_PER_MILLISECOND:
-        return f"{nanos / NANOS_PER_MILLISECOND :>8,.2f} ms"
+        return f"{BLUE}{nanos / NANOS_PER_MILLISECOND :>8,.2f} ms{END}"
     if nanos > NANOS_PER_MICROSECOND:
-        return f"{nanos / NANOS_PER_MICROSECOND :>8,.2f} µs"
+        return f"{GREEN}{nanos / NANOS_PER_MICROSECOND :>8,.2f} µs{END}"
     return f"{nanos:8,d} ns"
 
 
@@ -63,7 +75,7 @@ TOKENS_FILE = environ["HOME"] + "/.config/aocd/tokens.json"
 with open(TOKENS_FILE, "r", encoding="utf-8") as f:
     TOKENS = {p: t for p, t in json.load(f).items()}
 N_ACCOUNTS = len(TOKENS)
-MIN_WIDTH = 72
+MIN_WIDTH = 80  # this holds the longest title yet solved
 W_ACCOUNT = max([len(p) for p in TOKENS])
 W_TITLE = max([len(Puzzle(year=y, day=d).title) for y, d in to_run]) + 2
 W_DIV = 3
@@ -117,9 +129,9 @@ for y, d in reversed(sorted(to_run)):
             text=True,
         )
         if res.returncode == 0:
-            mark = f"{GREEN}{'✔':^{W_ACCOUNT}}{END}"
+            mark = colored(f"{'✔':^{W_ACCOUNT}}", Colors.GREEN)
         else:
-            mark = f"{RED}{'✖':^{W_ACCOUNT}}{END}"
+            mark = colored(f"{'✖':^{W_ACCOUNT}}", Colors.RED)
         print(f"{mark}", end="", flush=True)
         if res.returncode == 0:
             for line in res.stdout.splitlines():
@@ -130,7 +142,7 @@ for y, d in reversed(sorted(to_run)):
             print(res.stdout)
             print(res.stderr, file=sys.stderr)
             print()
-            print(f"{RED}{BOLD}Failed!{END}")
+            print(colored("Failed!", RED, BOLD))
             print(f"  {y} / {d} : {puzzle.title} for '{provider}'")
             print()
             if not exit_code:

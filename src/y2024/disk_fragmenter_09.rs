@@ -3,12 +3,12 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 const BLANK: isize = -1;
 
-fn part_one(input: &str) -> usize {
+fn create_disk(input: &str) -> Vec<isize> {
     let digits: Vec<_> = input
         .chars()
         .map(|c| c.to_digit(10).unwrap() as isize)
@@ -26,6 +26,11 @@ fn part_one(input: &str) -> usize {
         };
         disk.extend(&vec![f; *d as usize])
     }
+    disk
+}
+
+fn part_one(input: &str) -> usize {
+    let mut disk = create_disk(input);
     let mut i = 0;
     while let Some(f) = disk.get(i) {
         if *f == BLANK {
@@ -51,12 +56,60 @@ fn part_one(input: &str) -> usize {
     //     )
     // }
     // println!();
-    disk.iter().enumerate().map(|(i, f)| i * *f as usize).sum()
+    checksum(&disk)
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn checksum(disk: &Vec<isize>) -> usize {
+    disk.iter()
+        .enumerate()
+        .filter(|(_, id)| **id != BLANK)
+        .map(|(i, id)| i * *id as usize)
+        .sum()
+}
+
+fn part_two(input: &str) -> usize {
+    let mut disk = create_disk(input);
+    let mut files = Vec::new();
+    // using a VecDeque and discarding empty gaps is appreciably slower.
+    let mut gaps = Vec::new();
+    let mut itr = disk.iter().enumerate();
+    let (mut start, mut prev) = itr.next().unwrap();
+    for (i, id) in itr {
+        if prev == id {
+            continue;
+        }
+        let pair = (start, i - start);
+        if *prev == BLANK {
+            gaps.push(pair);
+        } else {
+            files.push(pair);
+        }
+        start = i;
+        prev = id;
+    }
+    files.push((start, disk.len() - start));
+    // println!("disk  : {disk:?}");
+    // println!("files : {files:?}");
+    // println!("gaps  : {gaps:?}");
+    for (start, len) in files.into_iter().rev() {
+        for (gap_start, gap_len) in gaps.iter_mut() {
+            if start <= *gap_start {
+                break;
+            }
+            if len <= *gap_len {
+                // println!("Move file {} from {start} to {gap_start}", disk[start]);
+                for offset in 0..len {
+                    disk.swap(start + offset, *gap_start + offset)
+                }
+                *gap_start += len;
+                *gap_len -= len;
+                break;
+            }
+        }
+    }
+    // println!("defrag: {disk:?}");
+    checksum(&disk)
+}
 
 #[cfg(test)]
 mod test {
@@ -68,11 +121,13 @@ mod test {
     #[test]
     fn example_0() {
         assert_eq!(r"60", part_one(EXAMPLE_0).to_string());
+        assert_eq!(r"132", part_two(EXAMPLE_0).to_string());
     }
 
     #[test]
     fn example_1() {
         assert_eq!(r"1928", part_one(EXAMPLE_1).to_string());
+        assert_eq!(r"2858", part_two(EXAMPLE_1).to_string());
     }
 
     #[test]

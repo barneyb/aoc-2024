@@ -1,51 +1,30 @@
 use crate::Part;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap();
-    tx.send(Part::B(part_two(input).to_string())).unwrap();
+    let grid = parse(input);
+    tx.send(Part::Parse()).unwrap();
+    let stats = trailhead_stats(&grid);
+    tx.send(Part::Parse()).unwrap();
+    tx.send(Part::A(part_one(&stats).to_string())).unwrap();
+    tx.send(Part::B(part_two(&stats).to_string())).unwrap();
 }
 
-fn part_one(input: &str) -> usize {
-    let grid: Vec<Vec<_>> = input.lines().map(|line| line.chars().collect()).collect();
-    let max_x = grid[0].len() - 1;
-    let max_y = grid.len() - 1;
-    let mut sum = 0;
-    for (y, row) in grid.iter().enumerate() {
-        for (x, c) in row.iter().enumerate() {
-            if *c == '0' {
-                let mut curr = HashSet::from([(x, y)]);
-                for tgt in '1'..='9' {
-                    let mut next = HashSet::new();
-                    for (x, y) in curr {
-                        if x > 0 && grid[y][x - 1] == tgt {
-                            next.insert((x - 1, y));
-                        }
-                        if x < max_x && grid[y][x + 1] == tgt {
-                            next.insert((x + 1, y));
-                        }
-                        if y > 0 && grid[y - 1][x] == tgt {
-                            next.insert((x, y - 1));
-                        }
-                        if y < max_y && grid[y + 1][x] == tgt {
-                            next.insert((x, y + 1));
-                        }
-                    }
-                    curr = next;
-                }
-                sum += curr.len()
-            }
-        }
-    }
-    sum
+type Grid = Vec<Vec<char>>;
+
+fn parse(input: &str) -> Grid {
+    input.lines().map(|line| line.chars().collect()).collect()
 }
 
-fn part_two(input: &str) -> usize {
-    let grid: Vec<Vec<_>> = input.lines().map(|line| line.chars().collect()).collect();
+type Pt = (usize, usize);
+
+type Stats = HashMap<Pt, HashMap<Pt, usize>>;
+
+fn trailhead_stats(grid: &Vec<Vec<char>>) -> Stats {
     let max_x = grid[0].len() - 1;
     let max_y = grid.len() - 1;
-    let mut sum = 0;
+    let mut result = HashMap::new();
     for (y, row) in grid.iter().enumerate() {
         for (x, c) in row.iter().enumerate() {
             if *c == '0' {
@@ -68,11 +47,19 @@ fn part_two(input: &str) -> usize {
                     }
                     curr = next;
                 }
-                sum += curr.values().sum::<usize>()
+                result.insert((x, y), curr);
             }
         }
     }
-    sum
+    result
+}
+
+fn part_one(stats: &Stats) -> usize {
+    stats.values().map(|vs| vs.len()).sum()
+}
+
+fn part_two(stats: &Stats) -> usize {
+    stats.values().map(|vs| vs.values().sum::<usize>()).sum()
 }
 
 #[cfg(test)]
@@ -142,43 +129,59 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(r"1", part_one(EXAMPLE_1).to_string());
+        let grid = parse(EXAMPLE_1);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"1", part_one(&stats).to_string());
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(r"2", part_one(EXAMPLE_2).to_string());
+        let grid = parse(EXAMPLE_2);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"2", part_one(&stats).to_string());
     }
 
     #[test]
     fn example_3() {
-        assert_eq!(r"4", part_one(EXAMPLE_3).to_string());
+        let grid = parse(EXAMPLE_3);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"4", part_one(&stats).to_string());
     }
 
     #[test]
     fn example_4() {
-        assert_eq!(r"3", part_one(EXAMPLE_4).to_string());
+        let grid = parse(EXAMPLE_4);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"3", part_one(&stats).to_string());
     }
 
     #[test]
     fn example_5() {
-        assert_eq!(r"36", part_one(EXAMPLE_5).to_string());
-        assert_eq!(r"81", part_two(EXAMPLE_5).to_string());
+        let grid = parse(EXAMPLE_5);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"36", part_one(&stats).to_string());
+        assert_eq!(r"81", part_two(&stats).to_string());
     }
 
     #[test]
     fn example_6() {
-        assert_eq!(r"3", part_two(EXAMPLE_6).to_string());
+        let grid = parse(EXAMPLE_6);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"3", part_two(&stats).to_string());
     }
 
     #[test]
     fn example_7() {
-        assert_eq!(r"13", part_two(EXAMPLE_7).to_string());
+        let grid = parse(EXAMPLE_7);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"13", part_two(&stats).to_string());
     }
 
     #[test]
     fn example_8() {
-        assert_eq!(r"227", part_two(EXAMPLE_8).to_string());
+        let grid = parse(EXAMPLE_8);
+        let stats = trailhead_stats(&grid);
+        assert_eq!(r"227", part_two(&stats).to_string());
     }
 
     #[test]

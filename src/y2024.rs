@@ -5,6 +5,7 @@ pub mod guard_gallivant_06;
 pub mod historian_hysteria_01;
 pub mod hoof_it_10;
 pub mod mull_it_over_03;
+pub mod plutonian_pebbles_11;
 pub mod print_queue_05;
 pub mod red_nosed_reports_02;
 pub mod resonant_collinearity_08;

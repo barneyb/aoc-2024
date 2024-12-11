@@ -1,6 +1,7 @@
 //! A [Histogram] type, and an [IntoHistogram] trait for constructing one from
 //! anything `IntoIterator`. Includes ASCII-art `Debug` formatting.
 use std::borrow::Borrow;
+use std::collections::hash_map::{IntoIter, Values};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
@@ -31,6 +32,12 @@ impl<T> Histogram<T>
 where
     T: Eq + Hash,
 {
+    pub fn new() -> Histogram<T> {
+        Histogram {
+            map: HashMap::new(),
+        }
+    }
+
     /// Get the count for a given element from the histogram. Returns zero for
     /// unknown elements. If you need to test existence, use `Deref`-coercion to
     /// `HashMap` for `get` or `contains_key`.
@@ -40,6 +47,14 @@ where
         Q: Hash + Eq,
     {
         self.map.get(k).map(|&c| c).unwrap_or_default()
+    }
+
+    pub fn counts(&self) -> Values<'_, T, usize> {
+        self.map.values()
+    }
+
+    pub fn add_count(&mut self, t: T, n: usize) {
+        *self.map.entry(t).or_default() += n
     }
 }
 
@@ -151,11 +166,23 @@ where
     T: Eq + Hash,
 {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mut map: HashMap<T, _> = HashMap::new();
+        let mut hist = Histogram::new();
         for t in iter {
-            *map.entry(t).or_default() += 1
+            hist.add_count(t, 1)
         }
-        Histogram { map }
+        hist
+    }
+}
+
+impl<T> IntoIterator for Histogram<T>
+where
+    T: Eq + Hash,
+{
+    type Item = (T, usize);
+    type IntoIter = IntoIter<T, usize>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.map.into_iter()
     }
 }
 

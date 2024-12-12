@@ -80,8 +80,7 @@ where
 }
 
 /// Renders an ASCII-art bar graph of the histogram, ordering buckets largest
-/// to smallest first. Same-sized buckets will be ordered arbitrarily (by the
-/// underlying `HashMap`).
+/// to smallest. Same-sized buckets will be ordered by their key.
 ///
 /// Note that some dubious rounding choices are made around bar widths, as the
 /// idea is to give a quick summary of values, not render a verifiable chart. If
@@ -97,7 +96,7 @@ where
 /// ```
 impl<T> Debug for Histogram<T>
 where
-    T: Debug + Eq + Hash,
+    T: Debug + Eq + Hash + Ord,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.map.is_empty() {
@@ -116,10 +115,15 @@ where
             max
         };
         let factor = width as f32 / max as f32;
-        let mut buckets: Vec<_> = self
-            .map
+        let mut buckets: Vec<_> = self.buckets().collect();
+        buckets.sort();
+        let mut buckets: Vec<_> = buckets
             .iter()
-            .map(|(b, val)| (format!("{b:?}"), (*val as f32 * factor).ceil() as usize))
+            .rev()
+            .map(|b| {
+                let val = self.count(b);
+                (format!("{b:?}"), (val as f32 * factor).ceil() as usize)
+            })
             .collect();
         buckets.sort_by_key(|(_, v)| *v);
         let len = buckets.iter().map(|(lbl, _)| lbl.len()).max().unwrap();

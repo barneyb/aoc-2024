@@ -66,7 +66,7 @@ fn part_n(stones: &Stones, n: u32) -> usize {
                     }
                 }
             }) {
-                next.add_count(*n, count);
+                next.add(*n, count);
             }
         }
         hist = next;

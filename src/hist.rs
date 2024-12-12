@@ -1,7 +1,7 @@
 //! A [Histogram] type, and an [IntoHistogram] trait for constructing one from
 //! anything `IntoIterator`. Includes ASCII-art `Debug` formatting.
 use std::borrow::Borrow;
-use std::collections::hash_map::{IntoIter, Values};
+use std::collections::hash_map::{IntoIter, Keys, Values};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
@@ -49,11 +49,21 @@ where
         self.map.get(k).map(|&c| c).unwrap_or_default()
     }
 
+    /// Returns an `Iterator` over the buckets in the histogram.
+    pub fn buckets(&self) -> Keys<'_, T, usize> {
+        self.map.keys()
+    }
+
+    /// Returns an `Iterator` over each bucket's count in the histogram.
     pub fn counts(&self) -> Values<'_, T, usize> {
         self.map.values()
     }
 
-    pub fn add_count(&mut self, t: T, n: usize) {
+    pub fn increment(&mut self, t: T) {
+        self.add(t, 1)
+    }
+
+    pub fn add(&mut self, t: T, n: usize) {
         *self.map.entry(t).or_default() += n
     }
 }
@@ -94,7 +104,7 @@ where
             return self.map.fmt(f);
         }
         let max = *self.map.values().max().unwrap();
-        let width: usize = if max > 70 {
+        let width: usize = if max >= 70 {
             70
         } else if max < 8 {
             max * 4
@@ -132,9 +142,7 @@ where
 ///
 /// ```
 /// # use aoc::hist::IntoHistogram;
-/// let items = vec![1, 2, 2, 3];
-///
-/// let hist = items.into_histogram();
+/// let hist = vec![1, 2, 2, 3].into_histogram();
 ///
 /// assert_eq!(2, hist.count(&2));
 /// assert_eq!(0, hist.count(&42));
@@ -168,7 +176,7 @@ where
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut hist = Histogram::new();
         for t in iter {
-            hist.add_count(t, 1)
+            hist.increment(t)
         }
         hist
     }
@@ -189,16 +197,58 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
-    fn df() {
-        let mut nums = vec![1, 2, 2, 3];
+    fn debug_print_test() {
+        let mut nums = vec![1, 3, 3, 4];
         println!("{:?}", (&nums).into_histogram());
-        for _ in 0..30 {
-            nums.push(7);
-            nums.push(7);
-            nums.push(7);
+        for _ in 0..25 {
+            nums.push(2);
+            nums.push(2);
+            nums.push(2);
             println!("{:?}", (&nums).into_histogram());
         }
+    }
+
+    #[test]
+    fn test_buckets() {
+        let hist = vec![1, 1, 2, 3, 3].into_histogram();
+        let buckets = hist.buckets().collect::<HashSet<_>>();
+
+        assert_eq!(3, buckets.len());
+        assert!(buckets.contains(&1));
+        assert!(buckets.contains(&2));
+        assert!(buckets.contains(&3));
+    }
+
+    #[test]
+    fn test_counts() {
+        let hist = vec![1, 1, 2, 3].into_histogram();
+        let mut counts = hist.counts().collect::<Vec<_>>();
+        counts.sort();
+
+        assert_eq!(3, counts.len());
+        assert_eq!(1, *counts[0]);
+        assert_eq!(1, *counts[1]);
+        assert_eq!(2, *counts[2]);
+    }
+
+    #[test]
+    fn test_increment() {
+        let mut hist = Histogram::new();
+        hist.increment("rabbit");
+
+        assert_eq!(0, hist.count("cow"));
+        assert_eq!(1, hist.count("rabbit"));
+    }
+
+    #[test]
+    fn test_add() {
+        let mut hist = Histogram::new();
+        hist.add("rabbit", 40);
+        hist.add("rabbit", 2);
+
+        assert_eq!(42, hist.count("rabbit"));
     }
 }

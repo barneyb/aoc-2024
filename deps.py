@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 
-from lib import Deps, END, FAINT, load_deps, save_deps, suggest_next, YD
+from lib import current_yd, Deps, END, FAINT, load_deps, save_deps, suggest_next, YD
 
 ByYear = dict[int, list[(int, bool)]]
 
@@ -56,39 +56,41 @@ def print_deps(known_deps: Deps):
 
 
 if __name__ == "__main__":
-    sugg = suggest_next()
+    curr = current_yd()
+    if curr is None:
+        curr = suggest_next()
 
     known_deps = load_deps()
     if len(sys.argv) == 1:
         print_deps(known_deps)
-        if sugg:
+        if curr:
             print(
-                f"Add {'another' if sugg in known_deps else 'one'} for {sugg} with '{sys.argv[0]} <day> [ <year> ]'."
+                f"Add {'another' if curr in known_deps else 'one'} for {curr} with '{sys.argv[0]} <day> [ <year> ]'."
             )
         exit(0)
 
-    if not sugg:
+    if not curr:
         print("No suggestion exists to add a dependency to?!")
         exit(4)
 
-    year = int(sys.argv[2]) if len(sys.argv) >= 3 else sugg[0]
-    day = int(sys.argv[1]) if len(sys.argv) >= 2 else sugg[1]
+    year = int(sys.argv[2]) if len(sys.argv) >= 3 else curr[0]
+    day = int(sys.argv[1]) if len(sys.argv) >= 2 else curr[1]
     if year < day:
         (year, day) = (day, year)
     new_dep = (year, day)
-    if sugg == new_dep:
+    if curr == new_dep:
         print("A day can't depend on itself?!")
         exit(1)
-    if sugg < new_dep:
+    if curr < new_dep:
         print("A day can't on a later day?!")
         exit(2)
-    if sugg in known_deps:
-        if new_dep in known_deps[sugg]:
+    if curr in known_deps:
+        if new_dep in known_deps[curr]:
             print("Dependency is already known?!")
             exit(3)
-        known_deps[sugg].add(new_dep)
+        known_deps[curr].add(new_dep)
     else:
-        known_deps[sugg] = {new_dep}
+        known_deps[curr] = {new_dep}
     save_deps(known_deps)
-    print(f"Added dependency on {new_dep} to {sugg}")
+    print(f"Added dependency on {new_dep} to {curr}")
     print_deps(known_deps)

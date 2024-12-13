@@ -6,10 +6,11 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     let contraptions = parse(input);
     tx.send(Part::A(part_one(&contraptions).to_string()))
         .unwrap();
-    // tx.send(Part::Other(part_two(&contraptions).to_string())).unwrap();
+    tx.send(Part::B(part_two(&contraptions).to_string()))
+        .unwrap();
 }
 
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct Pt {
     x: i64,
     y: i64,
@@ -86,9 +87,21 @@ fn part_one(contraptions: &Vec<Contraption>) -> i64 {
         .sum()
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn add_offset(contraptions: &Vec<Contraption>) -> Vec<Contraption> {
+    const OFFSET: i64 = 10000000000000;
+    contraptions
+        .iter()
+        .map(|c| {
+            let Pt { x, y } = c.prize;
+            Contraption::new(c.a.clone(), c.b.clone(), Pt::new(x + OFFSET, y + OFFSET))
+        })
+        .collect()
+}
+
+fn part_two(contraptions: &Vec<Contraption>) -> i64 {
+    let contraptions = add_offset(contraptions);
+    part_one(&contraptions)
+}
 
 #[cfg(test)]
 mod test {
@@ -128,6 +141,24 @@ Prize: X=18641, Y=10279"#;
     #[test]
     fn example_1() {
         assert_eq!(r"480", part_one(&*MODEL_1).to_string());
+    }
+
+    #[test]
+    fn test_winnable() {
+        assert_eq!(
+            vec![true, false, true, false],
+            MODEL_1
+                .iter()
+                .map(|c| c.play().is_some())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            vec![false, true, false, true],
+            add_offset(&*MODEL_1)
+                .iter()
+                .map(|c| c.play().is_some())
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]

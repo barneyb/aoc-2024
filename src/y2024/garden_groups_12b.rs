@@ -7,6 +7,8 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     // tx.send(Part::Other(part_two(input).to_string())).unwrap();
 }
 
+type Pt = (usize, usize);
+
 type Grid = Vec<Vec<char>>;
 
 fn parse(input: &str) -> Grid {
@@ -30,10 +32,8 @@ fn neighbors(grid: &Grid, x: usize, y: usize) -> Vec<(usize, usize)> {
     ns
 }
 
-fn part_one(input: &str) -> usize {
-    let grid = parse(input);
-    let mut visited = HashSet::new();
-    let mut total_price = 0;
+fn find_regions(grid: &Grid, visited: &mut HashSet<Pt>) -> Vec<HashSet<Pt>> {
+    let mut regions = Vec::new();
     for (y, line) in grid.iter().enumerate() {
         for (x, &plant) in line.iter().enumerate() {
             let curr = (x, y);
@@ -41,24 +41,42 @@ fn part_one(input: &str) -> usize {
                 continue;
             }
             // in a new component!
-            let mut area = 0;
-            let mut perim = 0;
+            let mut region = HashSet::new();
             let mut queue = VecDeque::new();
             queue.push_back(curr);
-            while let Some((x, y)) = queue.pop_front() {
-                if !visited.insert((x, y)) {
+            while let Some(curr) = queue.pop_front() {
+                if !visited.insert(curr) {
                     continue;
                 }
-                area += 1;
+                region.insert(curr);
+                let (x, y) = curr;
                 let ns: Vec<_> = neighbors(&grid, x, y)
                     .into_iter()
                     .filter(|&(x, y)| grid[y][x] == plant)
                     .collect();
-                perim += 4 - ns.len();
                 queue.extend(ns);
             }
-            total_price += area * perim;
+            regions.push(region)
         }
+    }
+    regions
+}
+
+fn part_one(input: &str) -> usize {
+    let grid = parse(input);
+    let mut visited = HashSet::new();
+    let regions = find_regions(&grid, &mut visited);
+    let mut total_price = 0;
+    for r in regions {
+        let area = r.len();
+        let mut perim = 0;
+        for &(x, y) in r.iter() {
+            perim += 4 - neighbors(&grid, x, y)
+                .iter()
+                .filter(|n| r.contains(n))
+                .count();
+        }
+        total_price += area * perim;
     }
     total_price
 }

@@ -36,7 +36,7 @@ Prize: X=18641, Y=10279"#;
 
     #[test]
     fn example_1() {
-        assert_eq!(r"100", part_one(EXAMPLE_1).to_string());
+        assert_eq!(r"480", part_one(EXAMPLE_1).to_string());
     }
 
     // #[test]

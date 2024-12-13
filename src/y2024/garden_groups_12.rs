@@ -1,5 +1,4 @@
 use crate::geom2d::Dir;
-use crate::geom2d::Dir::North;
 use crate::Part;
 use petgraph::graph::NodeIndex;
 use petgraph::prelude::UnGraph;
@@ -14,7 +13,8 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&map, &components).to_string()))
         .unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(&map, &components).to_string()))
+        .unwrap();
 }
 
 struct Map {
@@ -92,7 +92,6 @@ fn count_sides(c: &Vec<Nx>, width: usize) -> usize {
     use Dir::*;
 
     let c: HashSet<_> = c.iter().map(|nx| nx.index()).collect();
-    println!("Count sides: {c:?}");
     let can_step = |curr, h| match h {
         North => curr >= width && c.contains(&(curr - width)),
         East => curr % width < width - 1 && c.contains(&(curr + 1)),
@@ -106,35 +105,34 @@ fn count_sides(c: &Vec<Nx>, width: usize) -> usize {
         West => curr - 1,
     };
     let mut corners = 0;
-    let start = *c.iter().min().unwrap();
-    let mut curr = start;
-    let mut h = East;
-    loop {
-        println!("  At ({}, {}) facing {h:?}", curr % width, curr / width);
-        if can_step(curr, h) {
-            let a = take_step(curr, h);
-            if can_step(a, h.turn_left()) {
-                println!("    type 2");
-                corners += 1;
-                h = h.turn_left();
-                curr = take_step(a, h);
-            } else {
-                println!("    type 1");
-                curr = a;
+    let starts: VecDeque<_> = c.iter().filter(|&&n| !can_step(n, North)).collect();
+    let mut visited = HashSet::new();
+    for &start in starts {
+        let mut curr = start;
+        let mut h = East;
+        loop {
+            if !visited.insert((curr, h)) {
+                break;
             }
-        } else {
-            println!("    type 3");
-            corners += 1;
-            h = h.turn_right();
-        }
-        if curr == start && h == East {
-            println!("  {corners} sides!");
-            return corners;
-        }
-        if corners > 1000 {
-            panic!("found {corners} sides?!")
+            if can_step(curr, h) {
+                let a = take_step(curr, h);
+                if can_step(a, h.turn_left()) {
+                    corners += 1;
+                    h = h.turn_left();
+                    curr = take_step(a, h);
+                } else {
+                    curr = a;
+                }
+            } else {
+                corners += 1;
+                h = h.turn_right();
+            }
+            if curr == start && h == East {
+                break;
+            }
         }
     }
+    corners
 }
 
 fn part_two(map: &Map, components: &Vec<Component>) -> usize {
@@ -143,7 +141,6 @@ fn part_two(map: &Map, components: &Vec<Component>) -> usize {
         .map(|c| {
             let area = c.len();
             let side_count = count_sides(c, map.width);
-            println!("{area} * {side_count} = {}", area * side_count);
             area * side_count
         })
         .sum()

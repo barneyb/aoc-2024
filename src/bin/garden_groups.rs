@@ -1,5 +1,6 @@
 use aoc::viz::viz_file_name;
 use nannou::color::{Alpha, Hue};
+use nannou::lyon::lyon_tessellation::LineCap;
 use nannou::prelude::*;
 use std::sync::Mutex;
 
@@ -91,7 +92,7 @@ fn model(app: &App) -> Model {
         .map(|c| Plant {
             label: format!("{c}"),
             sprout: Growth::new(GREEN, 30.0, random_range(4, 8), 0.2),
-            flower: Growth::new(RED, 60.0, random_range(6, 12), 0.5),
+            flower: Growth::new(RED, 70.0, random_range(6, 12), 0.5),
         })
         .collect();
     Model {
@@ -140,37 +141,30 @@ fn view(app: &App, model: &Model, frame: Frame) {
     // Initialize
     let draw = app.draw().x_y(model.offset, model.offset);
     draw.background().color(c_field);
+    let draw_fence = |a, b| {
+        draw.line()
+            .start(a)
+            .end(b)
+            .weight(model.fence_weight)
+            .start_cap(LineCap::Round)
+            .end_cap(LineCap::Round)
+            .color(c_fence)
+    };
 
     // Fences first
     let bound = pt2(model.grid[0].len() as f32 * s, model.grid.len() as f32 * s);
     for st in [pt2(0.0, 0.0), bound] {
-        draw.line()
-            .start(st)
-            .end(pt2(0.0, bound.y))
-            .weight(model.fence_weight)
-            .color(c_fence);
-        draw.line()
-            .start(st)
-            .end(pt2(bound.x, 0.0))
-            .weight(model.fence_weight)
-            .color(c_fence);
+        draw_fence(st, pt2(0.0, bound.y));
+        draw_fence(st, pt2(bound.x, 0.0));
     }
     for (y, line) in model.grid.iter().enumerate() {
         for (x, &c) in line.iter().enumerate() {
             let start = pt2(x as f32 * s, y as f32 * s);
             if x > 0 && line[x - 1] != c {
-                draw.line()
-                    .start(start)
-                    .end(pt2(start.x, start.y + s))
-                    .weight(model.fence_weight)
-                    .color(c_fence);
+                draw_fence(start, pt2(start.x, start.y + s));
             }
             if y > 0 && model.grid[y - 1][x] != c {
-                draw.line()
-                    .start(start)
-                    .end(pt2(start.x + s, start.y))
-                    .weight(model.fence_weight)
-                    .color(c_fence);
+                draw_fence(start, pt2(start.x + s, start.y));
             }
         }
     }
@@ -186,30 +180,25 @@ fn view(app: &App, model: &Model, frame: Frame) {
                 .color(c_stubble);
         }
     }
-    draw_growth(model, &draw, |plant| &plant.sprout);
-    draw_growth(model, &draw, |plant| &plant.flower);
+    let draw_growth = |get_growth: fn(&Plant) -> &Growth| {
+        for (y, line) in model.grid.iter().enumerate() {
+            for (x, &c) in line.iter().enumerate() {
+                let plant = &model.plants[c];
+                let growth = get_growth(plant);
+                let start = pt2(x as f32 * s + s / 2.0, y as f32 * s + s / 1.5);
+                for _ in 0..growth.stage_count {
+                    let jitter = growth.jitter(s);
+                    draw.text(&plant.label)
+                        .xy(start + jitter)
+                        .font_size(model.font_size)
+                        .color(growth.color);
+                }
+            }
+        }
+    };
+    draw_growth(|plant| &plant.sprout);
+    draw_growth(|plant| &plant.flower);
 
     // Send it!
     draw.to_frame(app, &frame).unwrap();
-}
-
-fn draw_growth<F>(model: &Model, draw: &Draw, get_growth: F)
-where
-    F: Fn(&Plant) -> &Growth,
-{
-    let s = model.scale;
-    for (y, line) in model.grid.iter().enumerate() {
-        for (x, &c) in line.iter().enumerate() {
-            let plant = &model.plants[c];
-            let growth = get_growth(plant);
-            let start = pt2(x as f32 * s + s / 2.0, y as f32 * s + s / 1.5);
-            for _ in 0..growth.stage_count {
-                let jitter = growth.jitter(s);
-                draw.text(&plant.label)
-                    .xy(start + jitter)
-                    .font_size(model.font_size)
-                    .color(growth.color);
-            }
-        }
-    }
 }

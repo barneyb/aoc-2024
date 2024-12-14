@@ -14,6 +14,7 @@ pub enum Part {
     Parse(),
     Parsed(String),
     Other(String),
+    Solve(),
 }
 
 /// Invokes the passed `work`, passing it the given year/day/s input as a
@@ -44,8 +45,9 @@ where
     let (solve_tx, solve_rx) = channel();
     let time_arc = Arc::new(RwLock::new(Instant::now()));
     let answer_handle = {
+        let ptx = print_tx.clone();
         let answer_time = time_arc.clone();
-        thread::spawn(move || listen_for_answers(answer_time, solve_rx, print_tx))
+        thread::spawn(move || listen_for_answers(answer_time, solve_rx, ptx))
     };
     {
         let mut t = time_arc.write().unwrap();
@@ -57,10 +59,13 @@ where
     answer_handle
         .join()
         .expect("Answer thread should have exited cleanly");
+    let solve_elapsed = solve_nanos_start.elapsed();
     if solve_nanos {
-        let nanos = solve_nanos_start.elapsed().as_nanos();
-        println!("¡¡solve nanos {}!!", nanos);
+        println!("¡¡solve nanos {}!!", solve_elapsed.as_nanos());
+    } else {
+        print_tx.send((Part::Solve(), solve_elapsed)).unwrap();
     }
+    drop(print_tx); // since cloned above
     if print_handle
         .join()
         .expect("Print thread should have exited cleanly")
@@ -158,6 +163,7 @@ impl Print {
                 Some(a),
                 self.other_style.apply_to(format!("Answer {count}:")),
             ),
+            Part::Solve() => (None, self.time_style.apply_to("Exit ".to_string())),
         };
         if let Some(_) = ans {
             // This is a bit aggro, but whatever.
@@ -167,7 +173,7 @@ impl Print {
             None => {
                 println!(
                     "{:>12} {:>12} {}",
-                    self.correct_style.apply_to(lbl),
+                    lbl,
                     "",
                     self.time_style.apply_to(format!("({:>12?})", duration))
                 );

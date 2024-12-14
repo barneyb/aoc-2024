@@ -4,8 +4,14 @@ use std::collections::{HashSet, VecDeque};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap();
-    tx.send(Part::B(part_two(input).to_string())).unwrap();
+    let grid = parse(input);
+    tx.send(Part::Parse()).unwrap();
+    let regions = find_regions(&grid);
+    tx.send(Part::Parse()).unwrap();
+    tx.send(Part::A(part_one(&grid, &regions).to_string()))
+        .unwrap();
+    tx.send(Part::B(part_two(&grid, &regions).to_string()))
+        .unwrap();
 }
 
 type Pt = (usize, usize);
@@ -33,8 +39,9 @@ fn neighbors(grid: &Grid, x: usize, y: usize) -> Vec<(usize, usize)> {
     ns
 }
 
-fn find_regions(grid: &Grid, visited: &mut HashSet<Pt>) -> Vec<HashSet<Pt>> {
+fn find_regions(grid: &Grid) -> Vec<HashSet<Pt>> {
     let mut regions = Vec::new();
+    let mut visited = HashSet::new();
     for (y, line) in grid.iter().enumerate() {
         for (x, &plant) in line.iter().enumerate() {
             let curr = (x, y);
@@ -63,10 +70,7 @@ fn find_regions(grid: &Grid, visited: &mut HashSet<Pt>) -> Vec<HashSet<Pt>> {
     regions
 }
 
-fn part_one(input: &str) -> usize {
-    let grid = parse(input);
-    let mut visited = HashSet::new();
-    let regions = find_regions(&grid, &mut visited);
+fn part_one(grid: &Grid, regions: &Vec<HashSet<Pt>>) -> usize {
     let mut total_price = 0;
     for r in regions {
         let area = r.len();
@@ -128,10 +132,7 @@ fn count_sides(c: &HashSet<Pt>, width: usize) -> usize {
     corners
 }
 
-fn part_two(input: &str) -> usize {
-    let grid = parse(input);
-    let mut visited = HashSet::new();
-    let regions = find_regions(&grid, &mut visited);
+fn part_two(grid: &Grid, regions: &Vec<HashSet<Pt>>) -> usize {
     let mut total_price = 0;
     for r in regions {
         let area = r.len();
@@ -182,30 +183,40 @@ AAAAAA"#;
 
     #[test]
     fn example_1() {
-        assert_eq!(r"140", part_one(EXAMPLE_1).to_string());
-        assert_eq!(r"80", part_two(EXAMPLE_1).to_string());
+        let grid = parse(EXAMPLE_1);
+        let regions = find_regions(&grid);
+        assert_eq!(r"140", part_one(&grid, &regions).to_string());
+        assert_eq!(r"80", part_two(&grid, &regions).to_string());
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(r"772", part_one(EXAMPLE_2).to_string());
-        assert_eq!(r"436", part_two(EXAMPLE_2).to_string());
+        let grid = parse(EXAMPLE_2);
+        let regions = find_regions(&grid);
+        assert_eq!(r"772", part_one(&grid, &regions).to_string());
+        assert_eq!(r"436", part_two(&grid, &regions).to_string());
     }
 
     #[test]
     fn example_3() {
-        assert_eq!(r"1930", part_one(EXAMPLE_3).to_string());
-        assert_eq!(r"1206", part_two(EXAMPLE_3).to_string());
+        let grid = parse(EXAMPLE_3);
+        let regions = find_regions(&grid);
+        assert_eq!(r"1930", part_one(&grid, &regions).to_string());
+        assert_eq!(r"1206", part_two(&grid, &regions).to_string());
     }
 
     #[test]
     fn example_4() {
-        assert_eq!(r"236", part_two(EXAMPLE_4).to_string());
+        let grid = parse(EXAMPLE_4);
+        let regions = find_regions(&grid);
+        assert_eq!(r"236", part_two(&grid, &regions).to_string());
     }
 
     #[test]
     fn example_5() {
-        assert_eq!(r"368", part_two(EXAMPLE_5).to_string());
+        let grid = parse(EXAMPLE_5);
+        let regions = find_regions(&grid);
+        assert_eq!(r"368", part_two(&grid, &regions).to_string());
     }
 
     #[test]

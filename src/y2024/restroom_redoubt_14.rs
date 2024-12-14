@@ -1,15 +1,13 @@
+use crate::hist::Histogram;
 use crate::Part;
 use regex::Regex;
 use std::collections::HashSet;
 use std::sync::mpsc::Sender;
-use std::thread;
-use std::time::Duration;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let bots = parse(input);
-    // tx.send(Part::A(part_one(&bots).to_string())).unwrap();
-    part_two(&bots);
-    // tx.send(Part::Other(part_two(&bots).to_string())).unwrap();
+    tx.send(Part::A(part_one(&bots).to_string())).unwrap();
+    tx.send(Part::B(part_two(&bots).to_string())).unwrap();
 }
 
 type Pt = (i64, i64);
@@ -79,19 +77,17 @@ fn part_one_parameterized(bots: &Vec<Bot>, width: i64, height: i64, ticks: usize
     quads.iter().product()
 }
 
-fn part_two(bots: &Vec<Bot>) -> usize {
-    print_after(bots, 86);
-    print_after(bots, 7055);
-    let mut t = 86;
-    loop {
-        t += WIDTH;
-        print_after(bots, t as usize);
-        thread::sleep(Duration::from_millis(250))
-    }
-    99999
+/// I compute the maximum number of occupied tiles in any single column and row
+/// at time `t` and return them as a pair.
+fn get_most_populated_at(bots: &Vec<Bot>, t: usize) -> (usize, usize) {
+    let bots: HashSet<_> = pass_time(bots, WIDTH, HEIGHT, t).into_iter().collect();
+    let x = bots.iter().map(|(x, _)| *x).collect::<Histogram<_>>();
+    let y = bots.iter().map(|(_, y)| *y).collect::<Histogram<_>>();
+    (*x.values().max().unwrap(), *y.values().max().unwrap())
 }
 
-fn print_after(bots: &Vec<Bot>, t: usize) {
+#[allow(dead_code)]
+fn print_at(bots: &Vec<Bot>, t: usize) {
     let bots: HashSet<_> = pass_time(bots, WIDTH, HEIGHT, t).into_iter().collect();
     let mut buf = String::with_capacity(HEIGHT as usize * (WIDTH as usize + 1));
     for y in 0..HEIGHT {
@@ -103,6 +99,37 @@ fn print_after(bots: &Vec<Bot>, t: usize) {
         }
     }
     println!("After {t} seconds:\n{buf}");
+}
+
+fn convergence_at(x_offset: usize, y_offset: usize) -> usize {
+    // if y's "ahead", it goes around an extra time
+    let cycles_behind = if y_offset > x_offset { 2 } else { 1 };
+    // how far is y behind?
+    let steps_to_catch_up = (WIDTH as usize * cycles_behind + x_offset) - y_offset;
+    // two steps per cycle
+    let cycles_to_catch_up = steps_to_catch_up / 2;
+    cycles_to_catch_up * HEIGHT as usize + y_offset
+}
+
+fn part_two(bots: &Vec<Bot>) -> usize {
+    // First, find the ticks with the most populated column and row.
+    let mut max_x = 0;
+    let mut tx = 0;
+    let mut max_y = 0;
+    let mut ty = 0;
+    for t in 0..=(WIDTH.max(HEIGHT) as usize) {
+        let (x, y) = get_most_populated_at(bots, t);
+        if x > max_x {
+            tx = t;
+            max_x = x;
+        }
+        if y > max_y {
+            ty = t;
+            max_y = y;
+        }
+    }
+    // Then advance time forward until their cycles converge: the tree!
+    convergence_at(tx, ty)
 }
 
 #[cfg(test)]
@@ -127,6 +154,13 @@ p=9,5 v=-3,-3"#;
         // 11 tiles wide and 7 tiles tall
         let bots = parse(EXAMPLE_1);
         assert_eq!(r"12", part_one_parameterized(&bots, 11, 7, 100).to_string());
+    }
+
+    #[test]
+    fn test_convergence() {
+        assert_eq!(7055, convergence_at(86, 51));
+        assert_eq!(7584, convergence_at(9, 65));
+        assert_eq!(7083, convergence_at(13, 79));
     }
 
     #[test]

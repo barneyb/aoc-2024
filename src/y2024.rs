@@ -2,6 +2,7 @@ pub mod bridge_repair_07;
 pub mod ceres_search_04;
 pub mod disk_fragmenter_09;
 pub mod garden_groups_12;
+pub mod garden_groups_12b;
 pub mod guard_gallivant_06;
 pub mod historian_hysteria_01;
 pub mod hoof_it_10;

@@ -105,13 +105,13 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+fn key_pressed(app: &App, _: &mut Model, key: Key) {
     match key {
         Key::Q => app.quit(),
         Key::S => {
             app.main_window().capture_frame(viz_file_name("png"));
         }
-        _other_key => {}
+        _ => {}
     }
 }
 

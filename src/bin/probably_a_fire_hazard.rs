@@ -11,10 +11,7 @@ const WIDTH: u32 = COLS * SIZE + 2 * MARGIN;
 const HEIGHT: u32 = ROWS * SIZE + 2 * MARGIN;
 
 fn main() {
-    nannou::app(model)
-        .update(update)
-        .loop_mode(LoopMode::wait())
-        .run();
+    nannou::app(model).loop_mode(LoopMode::wait()).run();
 }
 
 struct Model {
@@ -42,7 +39,7 @@ fn model(app: &App) -> Model {
     }
 }
 
-fn key_pressed(app: &App, _model: &mut Model, key: Key) {
+fn key_pressed(app: &App, _: &mut Model, key: Key) {
     match key {
         Key::S => {
             app.main_window().capture_frame(viz_file_name("png"));
@@ -66,8 +63,6 @@ fn mouse_wheel(_app: &App, model: &mut Model, delta: MouseScrollDelta, _phase: T
         };
     }
 }
-
-fn update(_app: &App, _model: &mut Model, _update: Update) {}
 
 fn view(app: &App, model: &Model, frame: Frame) {
     // This whole thing's sorta confused between how many lines are showing and

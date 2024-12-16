@@ -162,13 +162,13 @@ fn key_pressed(app: &App, model: &mut Model, key: Key) {
 }
 
 fn update(_: &App, model: &mut Model, update: Update) {
-    const FIRST_ZOOM_FRAME: usize = 8;
+    const FIRST_ZOOM_FRAME: usize = 10;
     const LAST_ZOOM_FRAME: usize = 50;
     if model.complete {
         return;
     }
     let tick = update.since_start.as_millis();
-    if model.paused || (model.frame < FIRST_ZOOM_FRAME && tick - model.last_tick < 200) {
+    if model.paused || (model.frame < FIRST_ZOOM_FRAME && tick - model.last_tick < 60) {
         return;
     }
     if model.fully_updated {

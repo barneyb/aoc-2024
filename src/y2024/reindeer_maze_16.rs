@@ -1,7 +1,7 @@
 use crate::geom2d::Dir;
 use crate::geom2d::Dir::*;
 use crate::Part;
-use petgraph::prelude::NodeIndex;
+use petgraph::prelude::{EdgeRef, NodeIndex};
 use petgraph::Graph;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::mpsc::Sender;
@@ -113,11 +113,8 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
             }
             continue;
         }
-        for ox in maze.map.neighbors(nx) {
-            let &(d, mut c) = maze
-                .map
-                .edge_weight(maze.map.find_edge(nx, ox).unwrap())
-                .unwrap();
+        for ex in maze.map.edges(nx) {
+            let &(d, mut c) = ex.weight();
             if d == h.turn_around() {
                 continue;
             }
@@ -125,6 +122,7 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
                 c += 1000;
             }
             let mut new_path = path.clone();
+            let ox = ex.target();
             new_path.push(ox);
             queue.push_back((ox, d, cost + c, new_path))
         }

@@ -3,13 +3,15 @@ use crate::geom2d::Dir::*;
 use crate::Part;
 use petgraph::prelude::NodeIndex;
 use petgraph::Graph;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let maze = Maze::from(input);
-    tx.send(Part::A(part_one(&maze).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::Parse()).unwrap();
+    let (a, b) = both_parts(&maze);
+    tx.send(Part::A(a.to_string())).unwrap();
+    tx.send(Part::B(b.to_string())).unwrap();
 }
 
 type Pt = (usize, usize);
@@ -84,24 +86,31 @@ impl From<&str> for Maze {
 }
 
 type Coords = (NodeIndex, Dir);
-type State = (NodeIndex, Dir, usize);
+type State = (NodeIndex, Dir, usize, Vec<NodeIndex>);
 
-fn part_one(maze: &Maze) -> usize {
+fn both_parts(maze: &Maze) -> (usize, usize) {
     let mut queue: VecDeque<State> = VecDeque::new();
-    queue.push_back((maze.start, East, 0));
+    queue.push_back((maze.start, East, 0, vec![maze.start]));
     let mut visited: HashMap<Coords, usize> = HashMap::new();
     let mut best = usize::MAX;
-    while let Some((nx, h, cost)) = queue.pop_front() {
+    let mut good_seats = HashSet::new();
+    while let Some((nx, h, cost, path)) = queue.pop_front() {
         if let Some(&c) = visited.get(&(nx, h)) {
             // already been here, facing this way
-            if cost >= c {
+            if cost > c {
                 // and it was lower cost
                 continue;
             }
         }
         visited.insert((nx, h), cost);
         if nx == maze.goal {
-            best = best.min(cost);
+            if cost < best {
+                best = cost;
+                good_seats.clear();
+                good_seats.extend(path);
+            } else if cost == best {
+                good_seats.extend(path);
+            }
             continue;
         }
         for ox in maze.map.neighbors(nx) {
@@ -115,15 +124,13 @@ fn part_one(maze: &Maze) -> usize {
             if d != h {
                 c += 1000;
             }
-            queue.push_back((ox, d, cost + c))
+            let mut new_path = path.clone();
+            new_path.push(ox);
+            queue.push_back((ox, d, cost + c, new_path))
         }
     }
-    best
+    (best, good_seats.len())
 }
-
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
 
 #[cfg(test)]
 mod test {
@@ -165,12 +172,12 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(r"7036", part_one(&EXAMPLE_1.into()).to_string());
+        assert_eq!((7036, 45), both_parts(&EXAMPLE_1.into()));
     }
 
     #[test]
     fn example_2() {
-        assert_eq!(r"11048", part_one(&EXAMPLE_2.into()).to_string());
+        assert_eq!((11048, 64), both_parts(&EXAMPLE_2.into()));
     }
 
     #[test]

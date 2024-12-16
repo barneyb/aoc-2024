@@ -76,19 +76,23 @@ Success!  3 days x 2 accounts = 12 stars!                         2.54 sec
 ```
 
 Note that "fast" solvers' times are appreciably inflated by reporting overhead.
-The solver for _Not Quite Lisp_ takes just under 20µs to execute (vs the ~125µs
-suggested above):
+On my machine, running _Not Quite Lisp_ takes ~15µs to solve (vs the ~125µs
+suggested above), plus another ~30µs of thread overhead:
 
 ```
 % cargo run -r --bin not_quite_lisp --quiet
      Part A:          280 (    11.583µs)
-     Part B:         1797 (     5.875µs)
+     Part B:         1797 (     3.417µs)
+       Exit               (    43.333µs)
 ```
 
 ## Visualization
 
-Some of the binaries do visualization, rather than spit out answers. One example
-is `probably_a_fire_hazard` ([2015 day 6](https://adventofcode.com/2015/day/6)),
+Some of the binaries do visualization, rather than spit out answers. Run as
+above, and hit `s` to capture your own screenshot to the `viz` folder. Don't
+forget the `-r` in there; `rustc`'s optimizations are both quick and impressive.
+
+One example is `probably_a_fire_hazard` ([2015 day 6](https://adventofcode.com/2015/day/6)),
 which displays the final winning light pattern. Here's mine:
 
 ![Probably a Fire Hazard](viz/probably_a_fire_hazard.png)

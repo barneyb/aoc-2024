@@ -10,8 +10,7 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     let maze = Maze::from(input);
     tx.send(Part::Parse()).unwrap();
     let (a, b) = both_parts(&maze);
-    tx.send(Part::A(a.to_string())).unwrap();
-    tx.send(Part::B(b.to_string())).unwrap();
+    tx.send(Part::Both(a.to_string(), b.to_string())).unwrap();
 }
 
 type Pt = (usize, usize);

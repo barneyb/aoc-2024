@@ -1,5 +1,5 @@
 use crate::aocd;
-use console::{style, Style};
+use console::{style, Style, StyledObject};
 use std::io::Error;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, RecvError, Sender};
@@ -9,12 +9,13 @@ use std::{env, io, thread};
 
 #[derive(Debug)]
 pub enum Part {
-    A(String),
-    B(String),
     Parse(),
     Parsed(String),
+    A(String),
+    B(String),
+    Both(String, String),
     Other(String),
-    Solve(),
+    Join(),
 }
 
 /// Invokes the passed `work`, passing it the given year/day/s input as a
@@ -63,7 +64,7 @@ where
     if solve_nanos {
         println!("¡¡solve nanos {}!!", solve_elapsed.as_nanos());
     } else {
-        print_tx.send((Part::Solve(), solve_elapsed)).unwrap();
+        print_tx.send((Part::Join(), solve_elapsed)).unwrap();
     }
     drop(print_tx); // since cloned above
     if print_handle
@@ -95,7 +96,7 @@ fn listen_for_answers(
                     e
                 };
                 match &p {
-                    Part::A(_) => seen_a = true,
+                    Part::A(_) | Part::Both(_, _) => seen_a = true,
                     Part::B(_) if !seen_a => {
                         panic!("Part B can't be answered before part A. Undo the shenanigans.")
                     }
@@ -108,17 +109,15 @@ fn listen_for_answers(
     }
 }
 
-fn submit(year: u32, day: u8, part: &Part) -> io::Result<bool> {
-    if let Part::A(_) | Part::B(_) = part {
-        if aocd::submit_answer(year, day, part)? {
-            println!("{}", style(format!("Verified {part:?}")).green(),);
-            Ok(true)
-        } else {
-            println!("{}", style(format!("Failed {part:?}")).red());
-            Ok(false)
-        }
+fn submit(year: u32, day: u8, part: &str, val: &str) -> bool {
+    if aocd::submit_answer(year, day, part, val)
+        .expect("Answer should submit without error, valid or not.")
+    {
+        println!("{}", style(format!("Verified {part:?}")).green());
+        true
     } else {
-        Ok(true)
+        println!("{}", style(format!("Failed {part:?}")).red());
+        false
     }
 }
 
@@ -145,59 +144,111 @@ impl Print {
         }
     }
 
-    fn print(&self, year: u32, day: u8, part: &Part, duration: Duration) -> bool {
-        let count = self.ans_count.load(Ordering::SeqCst);
-        let correct =
-            submit(year, day, part).expect("Answer should submit without error, valid or not.");
-        let pstyle = if correct {
+    fn part_style(&self, correct: bool) -> &Style {
+        if correct {
             &self.correct_style
         } else {
             &self.wrong_style
-        };
-        let (ans, lbl) = match part {
-            Part::A(a) => (Some(a), pstyle.apply_to("Part A:".to_string())),
-            Part::B(a) => (Some(a), pstyle.apply_to("Part B:".to_string())),
-            Part::Parse() => (None, self.parse_style.apply_to("Parsed ".to_string())),
-            Part::Parsed(a) => (Some(a), self.parse_style.apply_to("Parse:".to_string())),
-            Part::Other(a) => (
-                Some(a),
-                self.other_style.apply_to(format!("Answer {count}:")),
+        }
+    }
+
+    fn print(&self, year: u32, day: u8, part: &Part, duration: Duration) -> bool {
+        let count = self.ans_count.load(Ordering::SeqCst);
+        let mut correct = true;
+        match part {
+            Part::A(a) => {
+                correct &= submit(year, day, "a", a);
+                self.do_print(
+                    self.part_style(correct).apply_to("Part A:".to_string()),
+                    Some(a),
+                    Some(duration),
+                )
+            }
+            Part::B(b) => {
+                correct &= submit(year, day, "b", b);
+                self.do_print(
+                    self.part_style(correct).apply_to("Part B:".to_string()),
+                    Some(b),
+                    Some(duration),
+                )
+            }
+            Part::Both(a, b) => {
+                let ac = submit(year, day, "a", a);
+                let bc = submit(year, day, "b", b);
+                correct &= ac & bc;
+                self.do_print(
+                    self.part_style(ac).apply_to("Part A:".to_string()),
+                    Some(a),
+                    None,
+                );
+                self.do_print(
+                    self.part_style(bc).apply_to("Part B:".to_string()),
+                    Some(b),
+                    Some(duration),
+                )
+            }
+            Part::Parse() => self.do_print(
+                self.parse_style.apply_to("Parsed ".to_string()),
+                None,
+                Some(duration),
             ),
-            Part::Solve() => (None, self.time_style.apply_to("Exit ".to_string())),
-        };
+            Part::Parsed(a) => self.do_print(
+                self.parse_style.apply_to("Parse:".to_string()),
+                Some(a),
+                Some(duration),
+            ),
+            Part::Other(a) => self.do_print(
+                self.other_style.apply_to(format!("Answer {count}:")),
+                Some(a),
+                Some(duration),
+            ),
+            Part::Join() => self.do_print(
+                self.time_style.apply_to("Join ".to_string()),
+                None,
+                Some(duration),
+            ),
+        }
+        correct
+    }
+
+    fn do_print(
+        &self,
+        lbl: StyledObject<String>,
+        ans: Option<&String>,
+        duration: Option<Duration>,
+    ) {
         if let Some(_) = ans {
             // This is a bit aggro, but whatever.
             self.ans_count.fetch_add(1, Ordering::SeqCst);
         }
+        let styled_duration = self.time_style.apply_to(if let Some(d) = duration {
+            format!("({:>12?})", d)
+        } else {
+            String::from("|")
+        });
         match ans {
             None => {
-                println!(
-                    "{:>12} {:>12} {}",
-                    lbl,
-                    "",
-                    self.time_style.apply_to(format!("({:>12?})", duration))
-                );
+                println!("{:>12} {:>12} {}", lbl, "", styled_duration);
             }
             Some(ans) if ans.contains('\n') => {
-                let twelve_spaces = format!(" {:>12}", "");
+                let twelve_spaces = format!("{:>12}", "");
                 println!(
-                    "{:>12}{} {}\n{}{}",
-                    self.correct_style.apply_to(lbl),
+                    "{:>12} {} {}\n {}{}",
+                    lbl,
                     twelve_spaces,
-                    self.time_style.apply_to(format!("({:>12?})", duration)),
+                    styled_duration,
                     twelve_spaces,
-                    ans.replace('\n', &format!("\n{twelve_spaces}"))
+                    ans.replace('\n', &format!("\n {twelve_spaces}"))
                 );
             }
             Some(ans) => {
                 println!(
                     "{:>12} {:>12} {}",
-                    self.correct_style.apply_to(lbl),
+                    lbl,
                     self.ans_style.apply_to(ans),
-                    self.time_style.apply_to(format!("({:>12?})", duration))
+                    styled_duration
                 );
             }
         }
-        correct
     }
 }

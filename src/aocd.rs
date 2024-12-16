@@ -1,4 +1,3 @@
-use crate::Part;
 use std::io::{self, Write};
 use std::process::Command;
 
@@ -28,24 +27,20 @@ pub fn get_input(year: u32, day: u8) -> io::Result<String> {
 
 const SUBMIT_WRAPPER: &'static str = include_str!("aocd_submit_wrapper.py");
 
-pub(crate) fn submit_answer(year: u32, day: u8, part: &Part) -> io::Result<bool> {
-    let (p, val) = match part {
-        Part::A(v) => ("a", v),
-        Part::B(v) => ("b", v),
-        _ => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "Only parts a and b can be submitted",
-            ))
-        }
-    };
+pub(crate) fn submit_answer(year: u32, day: u8, part: &str, val: &str) -> io::Result<bool> {
+    if part != "a" && part != "b" {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Only parts 'a' and 'b' can be submitted",
+        ));
+    }
     // python src/aocd_submit_wrapper.py 2015 1 a 280
     let output = Command::new("python")
         .arg("-c")
         .arg(SUBMIT_WRAPPER)
         .arg(year.to_string())
         .arg(day.to_string())
-        .arg(p)
+        .arg(part)
         .arg(val.to_string())
         .output()
         .expect("Failed to execute 'aocd'");

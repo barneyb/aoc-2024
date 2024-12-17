@@ -26,6 +26,13 @@ impl VM {
         }
     }
 
+    fn reset(&mut self, a: i64) {
+        self.reg_a = a;
+        self.reg_b = 0;
+        self.reg_c = 0;
+        self.ip = 0;
+    }
+
     fn execute(&mut self) -> Vec<u8> {
         let mut stdout = vec![];
         while let Some(op) = self.next() {
@@ -120,9 +127,20 @@ fn part_one(input: &str) -> String {
         .join(",")
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(input: &str) -> i64 {
+    let mut vm = initialize(input);
+    for a in 1.. {
+        vm.reset(a);
+        let stdout = vm.execute();
+        if stdout == vm.program {
+            return a;
+        }
+        if a % 10_000 == 0 {
+            println!("{a}");
+        }
+    }
+    99999
+}
 
 #[cfg(test)]
 mod test {
@@ -133,11 +151,13 @@ Register B: 0
 Register C: 0
 
 Program: 0,1,5,4,3,0"#;
-    const EXAMPLE_1: &str = r#"Register A: 729
+
+    const EXAMPLE_2: &str = r#"Register A: 2024
 Register B: 0
 Register C: 0
 
-Program: 0,1,5,4,3,0"#;
+Program: 0,3,5,4,3,0
+"#;
 
     #[test]
     fn example_1() {
@@ -176,6 +196,17 @@ Program: 0,1,5,4,3,0"#;
         let mut vm = VM::new(0, 2024, 43690, vec![4, 0]);
         vm.execute();
         assert_eq!(44354, vm.reg_b);
+    }
+
+    #[test]
+    fn example_2a() {
+        let mut vm = VM::new(117440, 0, 0, vec![0, 3, 5, 4, 3, 0]);
+        assert_eq!(vec![0, 3, 5, 4, 3, 0], vm.execute());
+    }
+
+    #[test]
+    fn example_2b() {
+        assert_eq!(117440, part_two(EXAMPLE_2));
     }
 
     #[test]

@@ -4,16 +4,16 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 fn part_one(input: &str) -> usize {
-    part_one_parameterized(input, 70, 1024)
+    part_one_parameterized(input, 70, 1024).unwrap()
 }
 
 type Pt = (usize, usize);
 
-fn part_one_parameterized(input: &str, max: usize, bytes: usize) -> usize {
+fn part_one_parameterized(input: &str, max: usize, bytes: usize) -> Option<usize> {
     let corruption: HashSet<Pt> = input
         .lines()
         .take(bytes)
@@ -29,7 +29,7 @@ fn part_one_parameterized(input: &str, max: usize, bytes: usize) -> usize {
             continue;
         }
         if p == goal {
-            return steps;
+            return Some(steps);
         }
         let (x, y) = p;
         let steps = steps + 1;
@@ -46,12 +46,20 @@ fn part_one_parameterized(input: &str, max: usize, bytes: usize) -> usize {
             queue.push_back(((x, y + 1), steps))
         }
     }
-    99999
+    None
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(input: &str) -> String {
+    part_two_parameterized(input, 70, 1024)
+}
+
+fn part_two_parameterized(input: &str, max: usize, bytes: usize) -> String {
+    let mut b = bytes + 1;
+    while let Some(_) = part_one_parameterized(input, max, b) {
+        b += 1;
+    }
+    input.lines().nth(b - 1).unwrap().to_string()
+}
 
 #[cfg(test)]
 mod test {
@@ -85,7 +93,8 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(r"22", part_one_parameterized(EXAMPLE_1, 6, 12).to_string());
+        assert_eq!(22, part_one_parameterized(EXAMPLE_1, 6, 12).unwrap());
+        assert_eq!(r"6,1", part_two_parameterized(EXAMPLE_1, 6, 12).to_string());
     }
 
     #[test]

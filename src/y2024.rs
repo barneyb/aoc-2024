@@ -11,6 +11,7 @@ pub mod hoof_it_10;
 pub mod mull_it_over_03;
 pub mod plutonian_pebbles_11;
 pub mod print_queue_05;
+pub mod ram_run_18;
 pub mod red_nosed_reports_02;
 pub mod reindeer_maze_16;
 pub mod resonant_collinearity_08;

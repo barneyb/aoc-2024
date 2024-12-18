@@ -3,23 +3,32 @@ use std::collections::{HashSet, VecDeque};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap();
-    tx.send(Part::B(part_two(input).to_string())).unwrap();
-}
-
-fn part_one(input: &str) -> usize {
-    part_one_parameterized(input, 70, 1024).unwrap()
+    let bytes = parse(input);
+    tx.send(Part::Parse()).unwrap();
+    tx.send(Part::A(part_one(&bytes).to_string())).unwrap();
+    tx.send(Part::B(part_two(&bytes).to_string())).unwrap();
 }
 
 type Pt = (usize, usize);
 
-fn part_one_parameterized(input: &str, max: usize, bytes: usize) -> Option<usize> {
-    let corruption: HashSet<Pt> = input
+fn parse(input: &str) -> Vec<Pt> {
+    input
         .lines()
-        .take(bytes)
         .map(|s| s.split(',').map(|n| n.parse().unwrap()))
         .map(|mut ns| (ns.next().unwrap(), ns.next().unwrap()))
-        .collect();
+        .collect()
+}
+
+fn part_one(bytes: &Vec<Pt>) -> usize {
+    part_one_parameterized(bytes, 70, 1024)
+}
+
+fn part_one_parameterized(bytes: &Vec<Pt>, max: usize, count: usize) -> usize {
+    let corruption: HashSet<&Pt> = bytes.iter().take(count).collect();
+    either_part(&corruption, max).unwrap()
+}
+
+fn either_part(corruption: &HashSet<&Pt>, max: usize) -> Option<usize> {
     let goal = (max, max);
     let mut queue = VecDeque::new();
     queue.push_back(((0, 0), 0));
@@ -49,16 +58,30 @@ fn part_one_parameterized(input: &str, max: usize, bytes: usize) -> Option<usize
     None
 }
 
-fn part_two(input: &str) -> String {
-    part_two_parameterized(input, 70, 1024)
+fn part_two(bytes: &Vec<Pt>) -> String {
+    part_two_parameterized(bytes, 70, 1024)
 }
 
-fn part_two_parameterized(input: &str, max: usize, bytes: usize) -> String {
-    let mut b = bytes + 1;
-    while let Some(_) = part_one_parameterized(input, max, b) {
-        b += 1;
+fn part_two_parameterized(bytes: &Vec<Pt>, max: usize, count: usize) -> String {
+    let mut corruption: HashSet<&Pt> = bytes.iter().take(count).collect();
+    let mut lo = count + 1;
+    let mut hi = bytes.len();
+    while lo < hi - 1 {
+        let mid = (hi + lo) / 2;
+        for b in lo..mid {
+            corruption.insert(&bytes[b]);
+        }
+        if let Some(_) = either_part(&corruption, max) {
+            lo = mid
+        } else {
+            for b in lo..mid {
+                corruption.remove(&bytes[b]);
+            }
+            hi = mid - 1;
+        }
     }
-    input.lines().nth(b - 1).unwrap().to_string()
+    let b = bytes[lo];
+    format!("{},{}", b.0, b.1)
 }
 
 #[cfg(test)]
@@ -93,8 +116,9 @@ mod test {
 
     #[test]
     fn example_1() {
-        assert_eq!(22, part_one_parameterized(EXAMPLE_1, 6, 12).unwrap());
-        assert_eq!(r"6,1", part_two_parameterized(EXAMPLE_1, 6, 12).to_string());
+        let bytes = parse(EXAMPLE_1);
+        assert_eq!(22, part_one_parameterized(&bytes, 6, 12));
+        assert_eq!(r"6,1", part_two_parameterized(&bytes, 6, 12).to_string());
     }
 
     #[test]

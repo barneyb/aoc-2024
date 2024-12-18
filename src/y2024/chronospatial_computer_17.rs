@@ -3,20 +3,21 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 #[derive(Debug, Default)]
 struct VM {
-    reg_a: i64,
-    reg_b: i64,
-    reg_c: i64,
+    reg_a: usize,
+    reg_b: usize,
+    reg_c: usize,
     ip: usize,
-    program: Vec<u8>,
+    program: Vec<usize>,
 }
 
 impl VM {
-    fn new(reg_a: i64, reg_b: i64, reg_c: i64, program: Vec<u8>) -> VM {
+    #[allow(dead_code)]
+    fn new(reg_a: usize, reg_b: usize, reg_c: usize, program: Vec<usize>) -> VM {
         VM {
             reg_a,
             reg_b,
@@ -26,58 +27,50 @@ impl VM {
         }
     }
 
-    fn reset(&mut self, a: i64) {
+    fn reset(&mut self, a: usize) {
         self.reg_a = a;
         self.reg_b = 0;
         self.reg_c = 0;
         self.ip = 0;
     }
 
-    fn execute(&mut self) -> Vec<u8> {
+    fn execute(&mut self) -> Vec<usize> {
         let mut stdout = vec![];
         while let Some(op) = self.next() {
             match op {
-                0 /* adv */ => {
-                    self.reg_a = self._dv();
+                0 => self.reg_a = self._dv(),
+                1 => self.reg_b ^= self.literal(),
+                2 => self.reg_b = self.combo() % 8,
+                3 => {
+                    let tgt = self.literal();
+                    if self.reg_a != 0 {
+                        self.ip = tgt;
+                    }
                 }
-                1 /* bxl */ => {
-                    self.reg_b ^= self.literal();
-                }
-                2 /* bst */ => {
-                    self.reg_b = self.combo() % 8;
-                }
-                3 /* jnz */ => {let tgt =self.literal();
-                if self.reg_a!=0{
-                    self.ip= tgt as usize;
-                }}
-                4 /* bxc */ => {
+                4 => {
                     let _ = self.literal();
                     self.reg_b ^= self.reg_c;
                 }
-                5 /* out */ => {
-                    stdout.push((self.combo() % 8) as u8);
-                }
-                6 /* bdv */ => {
-                    self.reg_b = self._dv();}
-                7 /* cdv */ => {
-                    self.reg_c = self._dv();}
+                5 => stdout.push(self.combo() % 8),
+                6 => self.reg_b = self._dv(),
+                7 => self.reg_c = self._dv(),
                 _ => panic!("Unexpected {op} opcode?!"),
             }
         }
         stdout
     }
 
-    fn _dv(&mut self) -> i64 {
+    fn _dv(&mut self) -> usize {
         let num = self.reg_a;
-        let denom = 2_i64.pow(self.combo() as u32);
+        let denom = 2_usize.pow(self.combo() as u32);
         num / denom
     }
 
-    fn literal(&mut self) -> i64 {
-        self.next().unwrap() as i64
+    fn literal(&mut self) -> usize {
+        self.next().unwrap()
     }
 
-    fn combo(&mut self) -> i64 {
+    fn combo(&mut self) -> usize {
         let v = self.literal();
         match v {
             0 | 1 | 2 | 3 => v,
@@ -89,7 +82,7 @@ impl VM {
         }
     }
 
-    fn next(&mut self) -> Option<u8> {
+    fn next(&mut self) -> Option<usize> {
         if self.ip < self.program.len() {
             let v = self.program[self.ip];
             self.ip += 1;
@@ -105,12 +98,14 @@ fn initialize(input: &str) -> VM {
     for (i, line) in input.lines().enumerate() {
         if let Some(idx) = line.chars().position(|c| c == ':') {
             match i {
-                0 => vm.reg_a = line[idx + 2..].parse::<i64>().unwrap(),
-                1 => vm.reg_b = line[idx + 2..].parse::<i64>().unwrap(),
-                2 => vm.reg_c = line[idx + 2..].parse::<i64>().unwrap(),
-                4 => vm
-                    .program
-                    .extend(line[idx + 2..].split(',').map(|c| c.parse::<u8>().unwrap())),
+                0 => vm.reg_a = line[idx + 2..].parse().unwrap(),
+                1 => vm.reg_b = line[idx + 2..].parse().unwrap(),
+                2 => vm.reg_c = line[idx + 2..].parse().unwrap(),
+                4 => vm.program.extend(
+                    line[idx + 2..]
+                        .split(',')
+                        .map(|c| c.parse::<usize>().unwrap()),
+                ),
                 _ => {}
             }
         }
@@ -127,19 +122,30 @@ fn part_one(input: &str) -> String {
         .join(",")
 }
 
-fn part_two(input: &str) -> i64 {
+fn part_two(input: &str) -> usize {
     let mut vm = initialize(input);
-    for a in 1.. {
+    let prog = vm.program.clone();
+    let mut run_for = |a: usize| {
         vm.reset(a);
-        let stdout = vm.execute();
-        if stdout == vm.program {
-            return a;
+        vm.execute()
+    };
+    let mut this_generation = run_for(0);
+    loop {
+        let mut next_gen = Vec::new();
+        for &prev in this_generation.iter() {
+            for offset in 0..8 {
+                let a = prev * 8 + offset;
+                let out = run_for(a);
+                if prog == out {
+                    return a;
+                }
+                if prog.ends_with(&out) && out.len() >= run_for(prev).len() {
+                    next_gen.push(a);
+                }
+            }
         }
-        if a % 10_000 == 0 {
-            println!("{a}");
-        }
+        this_generation = next_gen;
     }
-    99999
 }
 
 #[cfg(test)]

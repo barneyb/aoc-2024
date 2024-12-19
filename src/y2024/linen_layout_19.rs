@@ -41,26 +41,28 @@ fn part_one(onsen: &Onsen) -> usize {
 fn part_two(onsen: &Onsen) -> usize {
     let prefixed_towels: Vec<_> = onsen.towels.iter().map(|t| "^".to_string() + t).collect();
     let set = RegexSet::new(&prefixed_towels).unwrap();
+    let mut hist = Histogram::new();
+    let mut queue = BTreeSet::new();
     onsen
         .stacks
         .iter()
-        .map(|s| {
-            let mut hist = Histogram::new();
-            let mut queue = BTreeSet::new();
+        .map(|&stack| {
+            hist.clear();
+            queue.clear();
             hist.increment(0);
             queue.insert(0);
             while let Some(idx) = queue.pop_first() {
-                if idx == s.len() {
+                if idx == stack.len() {
                     break;
                 }
                 let curr = hist.count(&idx);
-                for m in set.matches(&s[idx..]) {
+                for m in set.matches(&stack[idx..]) {
                     let i = idx + onsen.towels[m].len();
                     hist.add(i, curr);
                     queue.insert(i);
                 }
             }
-            hist.count(&s.len())
+            hist.count(&stack.len())
         })
         .sum()
 }

@@ -128,9 +128,9 @@ impl VM {
         let mut stdout = vec![];
         while let Some(op) = self.next() {
             match op {
-                0 => self.reg_a = self._dv(),
+                0 => self.reg_a >>= self.combo(),
                 1 => self.reg_b ^= self.literal(),
-                2 => self.reg_b = self.combo() % 8,
+                2 => self.reg_b = self.combo() & 7,
                 3 => {
                     let tgt = self.literal();
                     if self.reg_a != 0 {
@@ -138,22 +138,16 @@ impl VM {
                     }
                 }
                 4 => {
-                    let _ = self.literal();
+                    let _ = self.literal(); // legacy
                     self.reg_b ^= self.reg_c;
                 }
-                5 => stdout.push(self.combo() % 8),
-                6 => self.reg_b = self._dv(),
-                7 => self.reg_c = self._dv(),
+                5 => stdout.push(self.combo() & 7),
+                6 => self.reg_b = self.reg_a >> self.combo(),
+                7 => self.reg_c = self.reg_a >> self.combo(),
                 _ => panic!("Unexpected {op} opcode?!"),
             }
         }
         stdout
-    }
-
-    fn _dv(&mut self) -> usize {
-        let num = self.reg_a;
-        let denom = 2_usize.pow(self.combo() as u32);
-        num / denom
     }
 
     fn literal(&mut self) -> usize {

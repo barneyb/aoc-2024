@@ -27,11 +27,12 @@ impl VM {
         }
     }
 
-    fn reset(&mut self, a: usize) {
+    fn run_for(&mut self, a: usize) -> Vec<usize> {
         self.reg_a = a;
         self.reg_b = 0;
         self.reg_c = 0;
         self.ip = 0;
+        self.execute()
     }
 
     fn execute(&mut self) -> Vec<usize> {
@@ -125,27 +126,26 @@ fn part_one(input: &str) -> String {
 fn part_two(input: &str) -> usize {
     let mut vm = initialize(input);
     let prog = vm.program.clone();
-    let mut run_for = |a: usize| {
-        vm.reset(a);
-        vm.execute()
-    };
-    let mut this_generation = run_for(0);
-    loop {
+    let mut this_generation = vec![0];
+    // Deliberately go one extra - it'll never get there if correct, but can
+    // provide debugging info if it does.
+    for g in 0..=prog.len() {
         let mut next_gen = Vec::new();
         for &prev in this_generation.iter() {
             for offset in 0..8 {
                 let a = prev * 8 + offset;
-                let out = run_for(a);
+                let out = vm.run_for(a);
                 if prog == out {
                     return a;
                 }
-                if prog.ends_with(&out) && out.len() >= run_for(prev).len() {
+                if prog.ends_with(&out) && out.len() > g {
                     next_gen.push(a);
                 }
             }
         }
         this_generation = next_gen;
     }
+    panic!("didn't find answer?!")
 }
 
 #[cfg(test)]

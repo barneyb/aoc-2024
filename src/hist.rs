@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 /// A `usize`-valued histogram, backed by a [HashMap].
 #[derive(Clone, Default)]
@@ -76,6 +76,15 @@ where
 
     fn deref(&self) -> &Self::Target {
         &self.map
+    }
+}
+
+impl<T> DerefMut for Histogram<T>
+where
+    T: Eq + Hash,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.map
     }
 }
 

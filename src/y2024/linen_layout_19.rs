@@ -1,19 +1,33 @@
+use crate::hist::Histogram;
 use crate::Part;
-use regex::Regex;
+use regex::{Regex, RegexSet};
+use std::collections::BTreeSet;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    let onsen = Onsen::new(input);
+    tx.send(Part::A(part_one(&onsen).to_string())).unwrap();
+    tx.send(Part::B(part_two(&onsen).to_string())).unwrap();
 }
 
-fn part_one(input: &str) -> usize {
-    let mut lines = input.lines();
-    let towels: Vec<_> = lines.next().unwrap().split(',').map(|s| s.trim()).collect();
-    lines.next();
-    let stacks: Vec<_> = lines.collect();
+struct Onsen<'a> {
+    towels: Vec<&'a str>,
+    stacks: Vec<&'a str>,
+}
+
+impl<'a> Onsen<'a> {
+    fn new(input: &str) -> Onsen {
+        let mut lines = input.lines();
+        let towels: Vec<_> = lines.next().unwrap().split(',').map(|s| s.trim()).collect();
+        lines.next();
+        let stacks: Vec<_> = lines.collect();
+        Onsen { towels, stacks }
+    }
+}
+
+fn part_one(onsen: &Onsen) -> usize {
     let mut re = "^(".to_string();
-    for (i, t) in towels.iter().enumerate() {
+    for (i, t) in onsen.towels.iter().enumerate() {
         if i > 0 {
             re.push('|')
         }
@@ -21,12 +35,35 @@ fn part_one(input: &str) -> usize {
     }
     re.push_str(")+$");
     let re = Regex::new(&re).unwrap();
-    stacks.iter().filter(|s| re.is_match(s)).count()
+    onsen.stacks.iter().filter(|s| re.is_match(s)).count()
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(onsen: &Onsen) -> usize {
+    let prefixed_towels: Vec<_> = onsen.towels.iter().map(|t| "^".to_string() + t).collect();
+    let set = RegexSet::new(&prefixed_towels).unwrap();
+    onsen
+        .stacks
+        .iter()
+        .map(|s| {
+            let mut hist = Histogram::new();
+            let mut queue = BTreeSet::new();
+            hist.increment(0);
+            queue.insert(0);
+            while let Some(idx) = queue.pop_first() {
+                if idx == s.len() {
+                    break;
+                }
+                let curr = hist.count(&idx);
+                for m in set.matches(&s[idx..]) {
+                    let i = idx + onsen.towels[m].len();
+                    hist.add(i, curr);
+                    queue.insert(i);
+                }
+            }
+            hist.count(&s.len())
+        })
+        .sum()
+}
 
 #[cfg(test)]
 mod test {
@@ -45,7 +82,9 @@ bbrgwb"#;
 
     #[test]
     fn example_1() {
-        assert_eq!(r"6", part_one(EXAMPLE_1).to_string());
+        let onsen = Onsen::new(EXAMPLE_1);
+        assert_eq!(r"6", part_one(&onsen).to_string());
+        assert_eq!(r"16", part_two(&onsen).to_string());
     }
 
     #[test]

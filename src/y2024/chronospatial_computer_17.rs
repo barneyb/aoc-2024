@@ -5,6 +5,95 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
     tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
+/* TypeScript
+// input
+let prog = [2, 4, 1, 7, 7, 5, 0, 3, 1, 7, 4, 1, 5, 5, 3, 0]
+let part_one_register_a = 64012472;
+
+// transform
+let part_two_output = prog.join("")
+prog = prog.map(n => BigInt(n))
+
+function execute(a: bigint): string {
+    let b = 0n;
+    let c = 0n;
+    let ip = 0;
+    let stdout = "";
+
+    function literal(): bigint { return prog[ip++]; }
+
+    function combo(): bigint {
+        const v = literal();
+        switch (v) {
+            case 0n:
+            case 1n:
+            case 2n:
+            case 3n: return v;
+            case 4n: return a;
+            case 5n: return b;
+            case 6n: return c;
+        }
+    }
+
+    while (ip < prog.length) {
+        switch (literal()) {
+            case 0n: a = a >> combo(); break;
+            case 1n: b = b ^ literal(); break;
+            case 2n: b = combo() % 8n; break;
+            case 3n: {
+                const tgt = literal();
+                if (a != 0n) ip = tgt === 0n ? 0 : BigInt.asIntN(3, tgt);
+                break;
+            }
+            case 4n: {
+                literal(); // legacy
+                b = b ^ c;
+                break;
+            }
+            case 5n: stdout += combo() % 8n; break;
+            case 6n: b = a >> combo(); break;
+            case 7n: c = a >> combo(); break;
+        }
+    }
+    return stdout;
+}
+
+function part_one(): string {
+    return execute(BigInt(part_one_register_a)).split("").join(",");
+}
+
+function part_two(): bigint {
+    let curr_gen = [0n];
+    for (let gen = 0;; gen++) {
+        let next_gen: bigint[] = [];
+        for (const prev of curr_gen) {
+            const basis = prev * 8n;
+            for (let offset = 0n; offset < 8n; offset++) {
+                const a = basis + offset;
+                const out = execute(a);
+                if (out == part_two_output) {
+                    return a;
+                }
+                if (part_two_output.endsWith(out) && out.length > gen) {
+                    next_gen.push(a);
+                }
+            }
+        }
+        curr_gen = next_gen;
+    }
+}
+
+function with_timing(work: () => any) {
+    const start = performance.now();
+    const result = work();
+    const stop = performance.now();
+    console.log(result, `${stop-start} ms`);
+}
+
+console.clear();
+with_timing(part_one);
+with_timing(part_two);
+ */
 
 #[derive(Debug, Default)]
 struct VM {
@@ -39,9 +128,9 @@ impl VM {
         let mut stdout = vec![];
         while let Some(op) = self.next() {
             match op {
-                0 => self.reg_a = self._dv(),
+                0 => self.reg_a >>= self.combo(),
                 1 => self.reg_b ^= self.literal(),
-                2 => self.reg_b = self.combo() % 8,
+                2 => self.reg_b = self.combo() & 7,
                 3 => {
                     let tgt = self.literal();
                     if self.reg_a != 0 {
@@ -49,22 +138,16 @@ impl VM {
                     }
                 }
                 4 => {
-                    let _ = self.literal();
+                    let _ = self.literal(); // legacy
                     self.reg_b ^= self.reg_c;
                 }
-                5 => stdout.push(self.combo() % 8),
-                6 => self.reg_b = self._dv(),
-                7 => self.reg_c = self._dv(),
+                5 => stdout.push(self.combo() & 7),
+                6 => self.reg_b = self.reg_a >> self.combo(),
+                7 => self.reg_c = self.reg_a >> self.combo(),
                 _ => panic!("Unexpected {op} opcode?!"),
             }
         }
         stdout
-    }
-
-    fn _dv(&mut self) -> usize {
-        let num = self.reg_a;
-        let denom = 2_usize.pow(self.combo() as u32);
-        num / denom
     }
 
     fn literal(&mut self) -> usize {

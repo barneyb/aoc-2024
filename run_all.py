@@ -10,7 +10,6 @@ from time import perf_counter_ns
 from aocd.models import Puzzle
 
 from lib import (
-    BLUE,
     BOLD,
     colored,
     Colors,
@@ -34,11 +33,11 @@ def format_ns(nanos):
     11 characters long, including the units.
     """
     if nanos > NANOS_PER_MINUTE:
-        return f"{RED}{nanos / NANOS_PER_MINUTE :>7,.2f} min{END}"
+        return f"{RED}{BOLD}{nanos / NANOS_PER_MINUTE :>7,.2f} min{END}"
     if nanos > NANOS_PER_SEC:
         return f"{LIGHT_RED}{nanos / NANOS_PER_SEC :>7,.2f} sec{END}"
     if nanos > NANOS_PER_MILLISECOND:
-        return f"{BLUE}{nanos / NANOS_PER_MILLISECOND :>8,.2f} ms{END}"
+        return f"{nanos / NANOS_PER_MILLISECOND :>8,.2f} ms"
     if nanos > NANOS_PER_MICROSECOND:
         return f"{GREEN}{nanos / NANOS_PER_MICROSECOND :>8,.2f} µs{END}"
     return f"{nanos:8,d} ns"
@@ -99,10 +98,11 @@ env = {}
 env.update(os.environ)
 env["BEB_SOLVE_NANOS"] = "1"
 exit_code = 0
+total_nanos = 0
 for y, d in reversed(sorted(to_run)):
     if y != prev:
-        print(f"{y} {'=' * (WIDTH-5)}")
         prev = y
+        print(f"{y} {'=' * (WIDTH-5)}")
     puzzle = Puzzle(year=y, day=d)
     print(f"{d:>4} {puzzle.title[0:W_TITLE]:{W_TITLE}}", end="", flush=True)
     start_puzzle = perf_counter_ns()
@@ -152,18 +152,30 @@ for y, d in reversed(sorted(to_run)):
     if abandon_puzzle:
         continue
     if len(solve_nanos) == N_ACCOUNTS:
-        print(format_ns(sum(solve_nanos)))
+        puzzle_nanos = sum(solve_nanos)
+        print(format_ns(puzzle_nanos))
     else:
-        print(format_ns(perf_counter_ns() - start_puzzle))
+        puzzle_nanos = perf_counter_ns() - start_puzzle
+        print(f"{format_ns(puzzle_nanos)}?!")
+    total_nanos += puzzle_nanos
 print("=" * WIDTH)
+runtime = format_ns(perf_counter_ns() - start_run)
 if exit_code == 0:
     fmt = GREEN
-    ds = len(to_run)
-    dl = "day" if ds == 1 else "days"
-    al = "account" if N_ACCOUNTS == 1 else "accounts"
-    status = f"Success!  {ds} {dl} x {N_ACCOUNTS} {al} = {ds * 2 * N_ACCOUNTS} stars!"
+    ps = len(to_run)
+    pl = "puzzle"
+    if ps != 1:
+        pl += "s"
+    al = "account"
+    if N_ACCOUNTS != 1:
+        al += "s"
+    stars = ps * 2 * N_ACCOUNTS
+    per_star = total_nanos / stars
+    print(f"{fmt}{'Success!':{WIDTH}}{END}{runtime}")
+    print(
+        f"{FAINT}{ps} {pl} x {N_ACCOUNTS} {al} = {stars} stars @{format_ns(per_star)}{FAINT} / star{END}"
+    )
 else:
     fmt = RED + BOLD
-    status = "Failed!"
-print(f"{fmt}{status:{WIDTH}}{END}{format_ns(perf_counter_ns() - start_run)}")
+    print(f"{fmt}{'Failed!':{WIDTH}}{END}{runtime}")
 exit(exit_code)

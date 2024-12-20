@@ -12,7 +12,7 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
 
 struct Onsen<'a> {
     towels: Vec<&'a str>,
-    stacks: Vec<&'a str>,
+    designs: Vec<&'a str>,
 }
 
 impl<'a> Onsen<'a> {
@@ -20,8 +20,10 @@ impl<'a> Onsen<'a> {
         let mut lines = input.lines();
         let towels: Vec<_> = lines.next().unwrap().split(',').map(|s| s.trim()).collect();
         lines.next();
-        let stacks: Vec<_> = lines.collect();
-        Onsen { towels, stacks }
+        Onsen {
+            towels,
+            designs: lines.collect(),
+        }
     }
 }
 
@@ -35,34 +37,34 @@ fn part_one(onsen: &Onsen) -> usize {
     }
     re.push_str(")+$");
     let re = Regex::new(&re).unwrap();
-    onsen.stacks.iter().filter(|s| re.is_match(s)).count()
+    onsen.designs.iter().filter(|s| re.is_match(s)).count()
 }
 
 fn part_two(onsen: &Onsen) -> usize {
     let prefixed_towels: Vec<_> = onsen.towels.iter().map(|t| "^".to_string() + t).collect();
-    let set = RegexSet::new(&prefixed_towels).unwrap();
+    let re_set = RegexSet::new(&prefixed_towels).unwrap();
     let mut hist = Histogram::new();
     let mut queue = BTreeSet::new();
     onsen
-        .stacks
+        .designs
         .iter()
-        .map(|&stack| {
+        .map(|&design| {
             hist.clear();
             queue.clear();
             hist.increment(0);
             queue.insert(0);
             while let Some(idx) = queue.pop_first() {
-                if idx == stack.len() {
+                if idx == design.len() {
                     break;
                 }
                 let curr = hist.count(&idx);
-                for m in set.matches(&stack[idx..]) {
+                for m in re_set.matches(&design[idx..]) {
                     let i = idx + onsen.towels[m].len();
                     hist.add(i, curr);
                     queue.insert(i);
                 }
             }
-            hist.count(&stack.len())
+            hist.count(&design.len())
         })
         .sum()
 }

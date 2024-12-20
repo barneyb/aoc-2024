@@ -228,12 +228,12 @@ impl Print {
         });
         match ans {
             None => {
-                println!("{:>12} {:>12} {}", lbl, "", styled_duration);
+                println!("{:>11} {:>17} {}", lbl, "", styled_duration);
             }
             Some(ans) if ans.contains('\n') => {
                 let twelve_spaces = format!("{:>12}", "");
                 println!(
-                    "{:>12} {} {}\n {}{}",
+                    "{:>11} {} {}\n {}{}",
                     lbl,
                     twelve_spaces,
                     styled_duration,
@@ -243,7 +243,7 @@ impl Print {
             }
             Some(ans) => {
                 println!(
-                    "{:>12} {:>12} {}",
+                    "{:>11} {:>17} {}",
                     lbl,
                     self.ans_style.apply_to(ans),
                     styled_duration

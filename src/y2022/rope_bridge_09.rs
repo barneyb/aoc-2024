@@ -1,4 +1,4 @@
-use crate::geom2d::Dir;
+use crate::geom2d::{step, Dir};
 use crate::Part;
 use std::collections::HashSet;
 use std::sync::mpsc::Sender;
@@ -19,7 +19,7 @@ fn part_two(input: &str) -> usize {
 }
 
 fn either_part(input: &str, tail_len: usize) -> usize {
-    let mut head = (0, 0);
+    let mut head: Pt = (0, 0);
     let mut trailing = vec![head; tail_len];
     let mut visited = HashSet::from([head]);
     for line in input.lines() {
@@ -40,17 +40,6 @@ fn either_part(input: &str, tail_len: usize) -> usize {
         }
     }
     visited.len()
-}
-
-#[rustfmt::skip]
-fn step(curr: Pt, dir: Dir) -> Pt {
-    let (x, y) = curr;
-    match dir {
-        Dir::North => (x    , y - 1),
-        Dir::East  => (x + 1, y    ),
-        Dir::South => (x    , y + 1),
-        Dir::West  => (x - 1, y    ),
-    }
 }
 
 #[rustfmt::skip]

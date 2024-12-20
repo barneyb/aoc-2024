@@ -1,4 +1,4 @@
-use crate::geom2d::Dir;
+use crate::geom2d::{step, Dir};
 use crate::Part;
 use std::collections::HashSet;
 use std::fmt::{Display, Formatter, Write};
@@ -12,20 +12,6 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
 }
 
 type Pt = (usize, usize);
-
-fn step(p: Pt, d: Dir) -> Pt {
-    step_by(p, d, 1)
-}
-
-fn step_by(p: Pt, d: Dir, n: usize) -> Pt {
-    let (x, y) = p;
-    match d {
-        North => (x, y - n),
-        East => (x + n, y),
-        South => (x, y + n),
-        West => (x - n, y),
-    }
-}
 
 #[derive(Debug)]
 struct Warehouse {

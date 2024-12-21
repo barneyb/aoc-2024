@@ -1,5 +1,3 @@
-use crate::geom2d::Dir::*;
-use crate::geom2d::{step, step_by};
 use crate::hist::Histogram;
 use crate::Part;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -8,40 +6,47 @@ use std::sync::mpsc::Sender;
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let track = parse(input);
     tx.send(Part::A(part_one(&track).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(&track).to_string())).unwrap();
 }
 
 type Pt = (usize, usize);
 
 #[derive(Debug, Eq, PartialEq)]
 struct Racetrack {
-    track: HashSet<Pt>,
     start: Pt,
     finish: Pt,
+    distance_from_start: HashMap<Pt, usize>,
 }
 
 impl Racetrack {
-    fn is_track(&self, p: &Pt) -> bool {
-        self.track.contains(p)
-    }
-
-    fn find_cheats(&self) -> Vec<(Pt, Pt)> {
-        let mut cheats = Vec::new();
-        for &curr in &self.track {
-            if curr.0 > 1 {
-                let end = step_by(curr, West, 2);
-                if !self.is_track(&step(curr, West)) && self.is_track(&end) {
-                    cheats.push((curr, end))
+    /// I build a histogram, where the bins are the savings a cheat provides.
+    fn cheat_value_histogram(&self, cheat_len: usize) -> Histogram<usize> {
+        let mut hist = Histogram::new();
+        for (&(x, y), &dist) in &self.distance_from_start {
+            let mut add_shortcut = |b, len| {
+                if let Some(d) = self.distance_from_start.get(&b) {
+                    let savings = dist.abs_diff(*d);
+                    if savings > len {
+                        hist.increment(savings - len)
+                    }
+                }
+            };
+            // NW bearings
+            for dy in 1..=y.min(cheat_len) {
+                let max_x = cheat_len - dy;
+                for dx in 0..=x.min(max_x) {
+                    add_shortcut((x - dx, y - dy), dx + dy);
                 }
             }
-            if curr.1 > 1 {
-                let end = step_by(curr, North, 2);
-                if !self.is_track(&step(curr, North)) && self.is_track(&end) {
-                    cheats.push((curr, end))
+            // SW bearings
+            for dy in 0..cheat_len {
+                let max_x = cheat_len - dy;
+                for dx in 1..=x.min(max_x) {
+                    add_shortcut((x - dx, y + dy), dx + dy);
                 }
             }
         }
-        cheats
+        hist
     }
 }
 
@@ -62,38 +67,35 @@ fn parse(input: &str) -> Racetrack {
             track.insert((x, y));
         }
     }
+    let start = start.unwrap();
     Racetrack {
-        track,
-        start: start.unwrap(),
+        distance_from_start: distances_from(&track, start),
+        start,
         finish: finish.unwrap(),
     }
 }
 
-fn cheat_value_histogram(track: &Racetrack) -> Histogram<usize> {
+fn distances_from(track: &HashSet<Pt>, start: Pt) -> HashMap<Pt, usize> {
     let mut queue = VecDeque::new();
-    queue.push_back((track.start, 0_usize));
-    let mut visited = HashMap::new();
+    queue.push_back((start, 0_usize));
+    let mut distances = HashMap::new();
     while let Some((p, steps)) = queue.pop_front() {
-        if *visited.entry(p).or_insert(steps) < steps {
+        if *distances.entry(p).or_insert(steps) < steps {
             continue;
         }
         let ns = steps + 1;
         let (x, y) = p;
         for n in [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)] {
-            if track.track.contains(&n) {
+            if track.contains(&n) {
                 queue.push_back((n, ns));
             }
         }
     }
-    let mut hist = Histogram::new();
-    for (a, b) in track.find_cheats() {
-        hist.increment(visited[&a].abs_diff(visited[&b]) - 2)
-    }
-    hist
+    distances
 }
 
-fn part_one_parameterized(track: &Racetrack, min_savings: usize) -> usize {
-    let hist = cheat_value_histogram(&track);
+fn either_part_parameterized(track: &Racetrack, cheat_len: usize, min_savings: usize) -> usize {
+    let hist = track.cheat_value_histogram(cheat_len);
     hist.into_iter()
         .filter(|(s, _)| *s >= min_savings)
         .map(|(_, n)| n)
@@ -101,12 +103,12 @@ fn part_one_parameterized(track: &Racetrack, min_savings: usize) -> usize {
 }
 
 fn part_one(track: &Racetrack) -> usize {
-    part_one_parameterized(track, 100)
+    either_part_parameterized(track, 2, 100)
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_two(track: &Racetrack) -> usize {
+    either_part_parameterized(track, 20, 100)
+}
 
 #[cfg(test)]
 mod test {
@@ -125,23 +127,23 @@ mod test {
 
     lazy_static! {
         static ref RACETRACK_0: Racetrack = Racetrack {
-            track: HashSet::from([
-                (1, 2),
-                (1, 1),
-                (2, 1),
-                (3, 1),
-                (3, 2),
-                (3, 3),
-                (3, 4),
-                (3, 5),
-                (3, 6),
-                (2, 6),
-                (1, 6),
-                (1, 5),
-                (1, 4)
-            ]),
             start: (1, 2),
             finish: (1, 4),
+            distance_from_start: HashMap::from([
+                ((1, 2), 0),
+                ((1, 1), 1),
+                ((2, 1), 2),
+                ((3, 1), 3),
+                ((3, 2), 4),
+                ((3, 3), 5),
+                ((3, 4), 6),
+                ((3, 5), 7),
+                ((3, 6), 8),
+                ((2, 6), 9),
+                ((1, 6), 10),
+                ((1, 5), 11),
+                ((1, 4), 12)
+            ]),
         };
     }
 
@@ -151,27 +153,11 @@ mod test {
     }
 
     #[test]
-    fn cheats_0() {
-        let track = parse(EXAMPLE_0);
-        let mut cheats = track.find_cheats();
-        cheats.sort();
-        assert_eq!(
-            vec![
-                ((1, 4), (1, 2)),
-                ((3, 2), (1, 2)),
-                ((3, 4), (1, 4)),
-                ((3, 5), (1, 5)),
-            ],
-            cheats
-        );
-    }
-
-    #[test]
     fn value_histogram_0() {
         let track = parse(EXAMPLE_0);
         assert_eq!(
             [2, 2, 4, 10].into_histogram(),
-            cheat_value_histogram(&track)
+            track.cheat_value_histogram(2)
         );
     }
 
@@ -206,13 +192,30 @@ mod test {
         expected.increment(38);
         expected.increment(40);
         expected.increment(64);
-        assert_eq!(expected, cheat_value_histogram(&track));
+        assert_eq!(expected, track.cheat_value_histogram(2));
+
+        let hist = track.cheat_value_histogram(20);
+        assert_eq!(32, hist[&50]);
+        assert_eq!(31, hist[&52]);
+        assert_eq!(29, hist[&54]);
+        assert_eq!(39, hist[&56]);
+        assert_eq!(25, hist[&58]);
+        assert_eq!(23, hist[&60]);
+        assert_eq!(20, hist[&62]);
+        assert_eq!(19, hist[&64]);
+        assert_eq!(12, hist[&66]);
+        assert_eq!(14, hist[&68]);
+        assert_eq!(12, hist[&70]);
+        assert_eq!(22, hist[&72]);
+        assert_eq!(4, hist[&74]);
+        assert_eq!(3, hist[&76]);
     }
 
     #[test]
     fn example_1() {
         let track = parse(EXAMPLE_1);
-        assert_eq!(8, part_one_parameterized(&track, 11));
+        assert_eq!(8, either_part_parameterized(&track, 2, 11));
+        assert_eq!(29, either_part_parameterized(&track, 20, 72));
     }
 
     #[test]

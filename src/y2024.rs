@@ -8,6 +8,7 @@ pub mod garden_groups_12b;
 pub mod guard_gallivant_06;
 pub mod historian_hysteria_01;
 pub mod hoof_it_10;
+pub mod keypad_conundrum_21;
 pub mod linen_layout_19;
 pub mod mull_it_over_03;
 pub mod plutonian_pebbles_11;

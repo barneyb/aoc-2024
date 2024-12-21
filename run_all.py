@@ -171,9 +171,11 @@ if exit_code == 0:
         al += "s"
     stars = ps * 2 * N_ACCOUNTS
     per_star = total_nanos / stars
+    puzzles = ps * N_ACCOUNTS
+    per_puzzle = total_nanos / puzzles
     print(f"{fmt}{'Success!':{WIDTH}}{END}{runtime}")
     print(
-        f"{FAINT}{ps} {pl} x {N_ACCOUNTS} {al} = {stars} stars @{format_ns(per_star)}{FAINT} / star{END}"
+        f"{FAINT}{ps} {pl} x {N_ACCOUNTS} {al} = {stars} stars @{format_ns(per_star)}{FAINT} / star, {format_ns(per_puzzle)}{FAINT} / puzzle{END}"
     )
 else:
     fmt = RED + BOLD

@@ -26,6 +26,7 @@ impl Display for Pt {
     }
 }
 
+#[rustfmt::skip]
 impl Pt {
     fn new(x: usize, y: usize) -> Pt {
         Pt { x, y }
@@ -33,22 +34,10 @@ impl Pt {
 
     fn step(&self, dir: Dir) -> Self {
         match dir {
-            Dir::North => Pt {
-                x: self.x,
-                y: self.y - 1,
-            },
-            Dir::East => Pt {
-                x: self.x + 1,
-                y: self.y,
-            },
-            Dir::South => Pt {
-                x: self.x,
-                y: self.y + 1,
-            },
-            Dir::West => Pt {
-                x: self.x - 1,
-                y: self.y,
-            },
+            Dir::North => Pt { x: self.x    , y: self.y - 1, },
+            Dir::East  => Pt { x: self.x + 1, y: self.y    , },
+            Dir::South => Pt { x: self.x    , y: self.y + 1, },
+            Dir::West  => Pt { x: self.x - 1, y: self.y    , },
         }
     }
 }

@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter, Write};
+use std::ops::{Add, Sub};
 use Dir::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
@@ -69,6 +70,27 @@ impl Display for Dir {
             South => f.write_char('v'),
             West => f.write_char('<'),
         }
+    }
+}
+
+pub fn step<T>(p: (T, T), d: Dir) -> (T, T)
+where
+    T: Add<Output = T> + Copy + From<u8> + Sub<Output = T>,
+{
+    step_by(p, d, From::from(1))
+}
+
+#[rustfmt::skip]
+pub fn step_by<T>(p: (T, T), d: Dir, n: T) -> (T, T)
+where
+    T: Add<Output = T> + Copy + Sub<Output = T>,
+{
+    let (x, y) = p;
+    match d {
+        North => (x    , y - n),
+        East  => (x + n, y    ),
+        South => (x    , y + n),
+        West  => (x - n, y    ),
     }
 }
 

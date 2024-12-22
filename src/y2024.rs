@@ -9,6 +9,7 @@ pub mod guard_gallivant_06;
 pub mod historian_hysteria_01;
 pub mod hoof_it_10;
 pub mod linen_layout_19;
+pub mod monkey_market_22;
 pub mod mull_it_over_03;
 pub mod plutonian_pebbles_11;
 pub mod print_queue_05;

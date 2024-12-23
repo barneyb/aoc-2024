@@ -112,7 +112,7 @@ def print_status(*, include_working_copy: bool = False):
         if (y, d) != curr_yd:
             puzzle = Puzzle(year=y, day=d)
             print(f"  {FAINT}Prog!{END} {puzzle.title} {FAINT}({puzzle.url}){END}")
-    if suggestion:
+    if suggestion and suggestion not in in_progress:
         (y, d) = suggestion
         puzzle = Puzzle(year=y, day=d)
         lbl = " Now:" if suggestion == curr_yd else "Next?"

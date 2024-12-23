@@ -1,18 +1,87 @@
+use crate::hist::Histogram;
 use crate::Part;
+use petgraph::graph::UnGraph;
+use petgraph::{Graph, Undirected};
+use std::collections::{HashMap, HashSet};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
-    tx.send(Part::Other(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    let net = build_network(input);
+    tx.send(Part::A(part_one(&net).to_string())).unwrap();
+    tx.send(Part::B(part_two(&net))).unwrap();
 }
 
-fn part_one(_input: &str) -> usize {
-    99999
+fn build_network(input: &str) -> Graph<&str, (), Undirected> {
+    let mut st = HashMap::new();
+    let mut g: Graph<&str, (), Undirected> = UnGraph::new_undirected();
+    for l in input.lines() {
+        let u = &l[..2];
+        let u = *st.entry(u).or_insert_with(|| g.add_node(u));
+        let v = &l[3..];
+        let v = *st.entry(v).or_insert_with(|| g.add_node(v));
+        g.add_edge(u, v, ());
+    }
+    g
 }
 
-// fn part_two(input: &str) -> usize {
-//     99999
-// }
+fn part_one(net: &Graph<&str, (), Undirected>) -> usize {
+    let mut triples = HashSet::new();
+    for curr in net.node_indices() {
+        for a in net.neighbors(curr) {
+            for b in net.neighbors(a) {
+                for c in net.neighbors(b) {
+                    if c == curr {
+                        let mut t = vec![a, b, c];
+                        t.sort();
+                        triples.insert(t);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    triples
+        .into_iter()
+        .filter(|t| {
+            t.iter()
+                .any(|c| net.node_weight(*c).unwrap().starts_with('t'))
+        })
+        .count()
+}
+
+fn part_two(net: &Graph<&str, (), Undirected>) -> String {
+    for curr in net.node_indices() {
+        let mut hist = Histogram::new();
+        for a in net.neighbors(curr) {
+            hist.increment(a);
+            for b in net.neighbors(a) {
+                hist.increment(b)
+            }
+        }
+        let mut sets: HashMap<usize, Vec<_>> = HashMap::new();
+        for (nx, n) in hist {
+            sets.entry(n)
+                .or_default()
+                .push(net.node_weight(nx).unwrap());
+        }
+        for (n, lbls) in sets {
+            if lbls.len() == n {
+                let mut to_sort: Vec<_> = lbls.iter().map(|l| **l).collect();
+                to_sort.push(net.node_weight(curr).unwrap());
+                to_sort.sort();
+                let mut buf = String::new();
+                for l in to_sort {
+                    if !buf.is_empty() {
+                        buf.push(',');
+                    }
+                    buf.push_str(l);
+                }
+                return buf;
+            }
+        }
+    }
+    panic!("didn't find any LAN party?!")
+}
 
 #[cfg(test)]
 mod test {
@@ -53,11 +122,13 @@ td-yn"#;
 
     #[test]
     fn example_1() {
-        assert_eq!(r"t", part_one(EXAMPLE_1).to_string());
+        let net = build_network(EXAMPLE_1);
+        assert_eq!(r"7", part_one(&net).to_string());
+        assert_eq!(r"co,de,ka,ta", part_two(&net).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2024, 23, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2024, 23, do_solve).unwrap();
+    }
 }

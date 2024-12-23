@@ -1,9 +1,11 @@
+use crate::hist::Histogram;
 use crate::Part;
+use std::collections::{HashSet, VecDeque};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    // tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 #[rustfmt::skip]
@@ -28,7 +30,28 @@ fn part_one(input: &str) -> usize {
 }
 
 fn part_two(input: &str) -> usize {
-    99999
+    let mut hist = Histogram::new();
+    for mut s in input.lines().map(|l| l.parse::<usize>().unwrap()) {
+        let mut visited = HashSet::new();
+        let mut window = VecDeque::new();
+        for _ in 0..2000 {
+            let n = prng(s);
+            if window.len() == 4 {
+                window.pop_front();
+            }
+            let price = n % 10;
+            window.push_back(price as i8 - (s % 10) as i8);
+            s = n;
+            if window.len() == 4 {
+                let key: Vec<_> = window.iter().cloned().collect();
+                if !visited.contains(&key) {
+                    visited.insert(key.clone());
+                    hist.add(key, price);
+                }
+            }
+        }
+    }
+    *hist.values().max().unwrap()
 }
 
 #[cfg(test)]
@@ -38,6 +61,11 @@ mod test {
     const EXAMPLE_1: &str = r#"1
 10
 100
+2024"#;
+
+    const EXAMPLE_2: &str = r#"1
+2
+3
 2024"#;
 
     #[test]
@@ -57,6 +85,11 @@ mod test {
     #[test]
     fn example_1() {
         assert_eq!(37327623, part_one(EXAMPLE_1));
+    }
+
+    #[test]
+    fn example_2() {
+        assert_eq!(23, part_two(EXAMPLE_2));
     }
 
     #[test]

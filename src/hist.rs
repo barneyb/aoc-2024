@@ -5,7 +5,7 @@ use std::collections::hash_map::{IntoIter, Keys, Values};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Debug;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 
 /// A `usize`-valued histogram, backed by a [HashMap].
@@ -25,6 +25,18 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         self.map == other.map
+    }
+}
+
+impl<T> Hash for Histogram<T>
+where
+    T: Eq + Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for (b, n) in &self.map {
+            b.hash(state);
+            n.hash(state);
+        }
     }
 }
 
@@ -65,6 +77,10 @@ where
 
     pub fn add(&mut self, t: T, n: usize) {
         *self.map.entry(t).or_default() += n
+    }
+
+    pub fn total(&self) -> usize {
+        self.map.values().sum()
     }
 }
 
@@ -108,8 +124,8 @@ where
     T: Debug + Eq + Hash + Ord,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.map.is_empty() {
-            return self.map.fmt(f);
+        if self.map.is_empty() || f.alternate() {
+            return write!(f, "{:?}", self.map);
         }
         let max = *self.map.values().max().unwrap();
         let width: usize = if max >= 70 {

@@ -18,11 +18,10 @@ This repo's current solve status:
  2021 │  *  *  .| .  .  .  *  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . │   6
  2022 │  *  .  .  .  .  .  .  .  *  .| .  .  *  .  .  .  .  .  .  *  .  .  .  .  . │   8
  2023 │  *  .  *  .  .  .  .  .  .  .  .  .| .  .  *  .  .  .  .  .  .  .  *  .  . │   8
- 2024 │  *  *  *  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *  *  ?  *  *       │  44
+ 2024 │  *  *  *  *  *  *  *  *  *  *  *  *  *| *  *  *  *  *  *  *  *  *  *  ?    │  46
 ──────┼────────────────────────────────────────────────────────────────────────────┼─────
-      │ 16  8  4  4  4  4  4  4  4  4  6| 4  6  4  4  4  4  4  4  4  .  4  6  .  . │ 110
-  Prog! Keypad Conundrum (https://adventofcode.com/2024/day/21)
-  Next? Keypad Conundrum (https://adventofcode.com/2024/day/21)
+      │ 16  8  4  4  4  4  4  4  4  4| 6  4  6  4  4  4  4  4  4  4  2  4  6  .  . │ 112
+  Prog! Crossed Wires (https://adventofcode.com/2024/day/24)
 </pre>
 
 https://github.com/barneyb/aoc2017 has an index of all years' repositories.

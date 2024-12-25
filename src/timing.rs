@@ -47,7 +47,7 @@ impl Timing {
     {
         let t = Timing::default();
         let r = t.apply(work);
-        println!("{label}: {:?}", t.total_time());
+        println!("{label} ({:?})", t.total_time());
         r
     }
 }

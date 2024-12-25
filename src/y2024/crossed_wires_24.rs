@@ -1,8 +1,9 @@
 use crate::Part;
 use petgraph::algo::toposort;
 use petgraph::prelude::NodeIndex;
-use petgraph::{Direction, Graph};
+use petgraph::{Graph, Incoming};
 use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use std::sync::mpsc::Sender;
 use symbol_table::{Symbol, SymbolTable};
@@ -10,13 +11,6 @@ use symbol_table::{Symbol, SymbolTable};
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
     tx.send(Part::B(part_two(input).to_string())).unwrap();
-}
-
-fn swap(input: &str, a: &str, b: &str) -> String {
-    const TEMP: &str = "__TEMP__";
-    let mut input = input.replace(a, TEMP);
-    input = input.replace(b, a);
-    input.replace(TEMP, b)
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -36,6 +30,16 @@ impl FromStr for Op {
             "XOR" => Ok(Op::Xor),
             _ => Err(()),
         }
+    }
+}
+
+impl Display for Op {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Op::And => "AND",
+            Op::Or => "OR",
+            Op::Xor => "XOR",
+        })
     }
 }
 
@@ -67,8 +71,6 @@ impl FromStr for Adder {
         let mut signals = HashMap::new();
         let mut g = Graph::new();
         let mut lookup = HashMap::new();
-        // let mut g2 = Graph::new();
-        // let mut lookup2 = HashMap::new();
         let mut ops = HashMap::new();
         for line in input.lines() {
             if line == "" {
@@ -86,27 +88,13 @@ impl FromStr for Adder {
                 let b = symbols.intern(words[2]);
                 let out = symbols.intern(words[4]);
                 lookup.entry(out).or_insert_with(|| g.add_node(out));
-                // lookup2
-                //     .entry(words[4])
-                //     .or_insert_with(|| g2.add_node(words[4].to_string()));
-                // *g2.node_weight_mut(lookup2[words[4]]).unwrap() =
-                //     words[1].to_string() + "  " + words[4];
                 ops.insert(out, op);
                 lookup.entry(a).or_insert_with(|| g.add_node(a));
-                // lookup2
-                //     .entry(words[0])
-                //     .or_insert_with(|| g2.add_node(words[0].to_string()));
                 g.add_edge(lookup[&a], lookup[&out], ());
-                // g2.add_edge(lookup2[words[0]], lookup2[words[4]], ());
                 lookup.entry(b).or_insert_with(|| g.add_node(b));
-                // lookup2
-                //     .entry(words[2])
-                //     .or_insert_with(|| g2.add_node(words[2].to_string()));
                 g.add_edge(lookup[&b], lookup[&out], ());
-                // g2.add_edge(lookup2[words[2]], lookup2[words[4]], ());
             }
         }
-        // crate::viz::graphviz::render_dot(&petgraph::dot::Dot::with_config(&g2, &[petgraph::dot::Config::EdgeNoLabel]));
         Ok(Adder {
             symbols,
             signals,
@@ -128,7 +116,7 @@ impl Adder {
             }
             let symbols: Vec<_> = self
                 .g
-                .neighbors_directed(nx, Direction::Incoming)
+                .neighbors_directed(nx, Incoming)
                 .map(|nx| self.g.node_weight(nx).unwrap())
                 .collect();
             let sigs: Vec<_> = symbols.iter().map(|w| signals[w]).collect();
@@ -148,14 +136,60 @@ impl Adder {
         signals
     }
 
-    fn set(&mut self, prefix: char, mut value: usize) {
-        for n in 0..45 {
-            self.signals.insert(
-                self.symbols.intern(&format!("{prefix}{n:0>2}")),
-                value & 1 == 1,
-            );
-            value >>= 1;
+    fn find_bad_wires(&self) -> Vec<&str> {
+        let mut wires = Vec::new();
+        for ix in self.g.node_indices() {
+            let sym = self.g[ix];
+            if let Some(op) = self.ops.get(&sym) {
+                let wire = self.symbols.resolve(sym);
+                if wire.starts_with('z') {
+                    // z wires MUST be XOR, except the final carry/overflow bit
+                    if wire != "z45" && *op != Op::Xor {
+                        wires.push(wire);
+                    }
+                    continue;
+                }
+                if *op == Op::And {
+                    // AND signals pass to one gate
+                    if self.g.neighbors(ix).count() != 1 {
+                        // unless it's the first half-adder
+                        if self
+                            .g
+                            .neighbors_directed(ix, Incoming)
+                            .map(|ix| self.g[ix])
+                            .map(|s| self.symbols.resolve(s))
+                            .all(|w| !w.ends_with("00"))
+                        {
+                            wires.push(wire);
+                            continue;
+                        }
+                    }
+                } else {
+                    // OR/XOR signals pass to two gates
+                    if self.g.neighbors(ix).count() != 2 {
+                        // unless it's the final overflow bit
+                        if wire != "z45" {
+                            wires.push(wire);
+                            continue;
+                        }
+                    }
+                }
+                if *op == Op::Xor {
+                    // non-z XOR are always fed by input wires
+                    if self
+                        .g
+                        .neighbors_directed(ix, Incoming)
+                        .map(|ix| self.g[ix])
+                        .map(|s| self.symbols.resolve(s))
+                        .any(|w| !w.starts_with("x") && !w.starts_with("y"))
+                    {
+                        wires.push(wire);
+                        continue;
+                    }
+                }
+            }
         }
+        wires
     }
 
     fn get_from(&self, prefix: char, signals: &HashMap<Symbol, bool>) -> usize {
@@ -167,14 +201,37 @@ impl Adder {
         ws.sort();
         ws.reverse();
         let mut num = 0_usize;
-        for z in ws.into_iter() {
-            let s = self.symbols.intern(z);
+        for w in ws.into_iter() {
             num <<= 1;
-            if signals[&s] {
+            if signals[&self.symbols.intern(w)] {
                 num += 1;
             }
         }
         num
+    }
+
+    #[allow(dead_code)]
+    fn render_pdf(&self) {
+        let mut g2 = Graph::new();
+        for ax in self.g.node_indices() {
+            let s = self.g[ax];
+            let mut lbl = self.symbols.resolve(s).to_string();
+            if let Some(op) = self.ops.get(&s) {
+                lbl.push(' ');
+                lbl.push_str(&op.to_string())
+            }
+            let nx = g2.add_node(lbl);
+            assert_eq!(ax, nx);
+        }
+        for ax in self.g.node_indices() {
+            for bx in self.g.neighbors(ax) {
+                g2.add_edge(ax, bx, ());
+            }
+        }
+        crate::viz::graphviz::render_dot(&petgraph::dot::Dot::with_config(
+            &g2,
+            &[petgraph::dot::Config::EdgeNoLabel],
+        ));
     }
 }
 
@@ -185,44 +242,11 @@ fn part_one(input: &str) -> usize {
 }
 
 fn part_two(input: &str) -> String {
-    // my swaps, found by visual inspection of the "circuit"
-    let to_swap: Vec<(&str, &str)> = vec![
-        ("kfp", "hbs"),
-        ("dhq", "z18"),
-        ("z22", "pdg"),
-        ("jcp", "z27"),
-    ];
-    let mut input = input.to_string();
-    let mut wires = Vec::new();
-    for (a, b) in to_swap {
-        input = swap(&input, &format!(" -> {a}"), &format!(" -> {b}"));
-        wires.push(a);
-        wires.push(b);
-    }
-    let mut adder: Adder = input.parse().unwrap();
-    for i in 0..45 {
-        let x = 1 << i;
-        let y = 1 << i;
-        adder.set('x', x);
-        adder.set('y', y);
-        let z = adder.get_from('z', &adder.evaluate());
-        assert_eq!(
-            z,
-            x + y,
-            "At bit {i}:\n  {x:>45b}\n+ {y:>45b}\n{}\n {z:>46b} <-- incorrect\n {:>46b} <-- correct",
-            "-".repeat(47),
-            x + y
-        );
-    }
+    let adder: Adder = input.parse().unwrap();
+    // adder.render_pdf();
+    let mut wires: Vec<_> = adder.find_bad_wires();
     wires.sort();
-    let mut buf = String::new();
-    for w in wires {
-        if !buf.is_empty() {
-            buf.push(',')
-        }
-        buf.push_str(w);
-    }
-    buf
+    wires.join(",")
 }
 
 #[cfg(test)]
@@ -330,16 +354,6 @@ x05 AND y05 -> z00"#;
         assert_eq!(42, adder.get('x'));
         assert_eq!(44, adder.get('y'));
         assert_eq!(9, adder.get_from('z', &adder.evaluate()));
-    }
-
-    #[test]
-    fn example_3_fixed() {
-        let input = swap(EXAMPLE_3, "-> z05", "-> z00");
-        let input = swap(&input, "-> z01", "-> z02");
-        let adder: Adder = input.parse().unwrap();
-        assert_eq!(42, adder.get('x'));
-        assert_eq!(44, adder.get('y'));
-        assert_eq!(40, adder.get_from('z', &adder.evaluate()));
     }
 
     #[test]

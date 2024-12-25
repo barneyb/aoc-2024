@@ -9,7 +9,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::A(part_one(input).to_string())).unwrap();
-    tx.send(Part::Other(part_two(input).to_string())).unwrap();
+    tx.send(Part::B(part_two(input).to_string())).unwrap();
 }
 
 type Pt = (i32, i32);
@@ -81,22 +81,22 @@ impl Keypad {
             buf.push_str(&"<".repeat(-dx as usize));
             dx = 0;
         }
-        // dodge the gap moving v
-        if dy > 0 && (!self.is_gap_row(tgt.1) || !self.is_gap_col(curr.0)) {
-            buf.push_str(&"v".repeat(dy as usize));
-            dy = 0;
-        }
-        if dx > 0 {
-            buf.push_str(&">".repeat(dx as usize));
-        }
-        if dy < 0 {
+        // dodge the gap moving ^
+        if dy < 0 && (!self.is_gap_row(tgt.1) || !self.is_gap_col(curr.0)) {
             buf.push_str(&"^".repeat(-dy as usize));
+            dy = 0;
         }
         if dy > 0 {
             buf.push_str(&"v".repeat(dy as usize));
         }
         if dx < 0 {
             buf.push_str(&"<".repeat(-dx as usize));
+        }
+        if dx > 0 {
+            buf.push_str(&">".repeat(dx as usize));
+        }
+        if dy < 0 {
+            buf.push_str(&"^".repeat(-dy as usize));
         }
         buf.push('A');
         string_to_moves(&buf)

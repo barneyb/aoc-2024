@@ -3,6 +3,7 @@ pub mod ceres_search_04;
 pub mod chronospatial_computer_17;
 pub mod claw_contraption_13;
 pub mod code_chronicle_25;
+pub mod crossed_wires_24;
 pub mod disk_fragmenter_09;
 pub mod garden_groups_12;
 pub mod garden_groups_12b;

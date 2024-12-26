@@ -75,7 +75,7 @@ where
     const PLUGIN: &str = "dot";
     const FORMAT: &str = "pdf";
     let (filename_gv, filename_render) = make_filenames(FORMAT);
-    Timing::ad_hoc(&format!("Wrote graph to {filename_gv}"), || {
+    Timing::ad_hoc(&format!("Wrote graph to '{filename_gv}'"), || {
         let f = File::create(&filename_gv).expect(&format!("Unable to create '{filename_gv}'"));
         let mut f = BufWriter::new(f);
         emit_content(&mut f).expect("Unable to write data");

@@ -100,8 +100,8 @@ mod test {
         assert_eq!(r"3", part_one(EXAMPLE_1).to_string());
     }
 
-    // #[test]
-    // fn test_real_input() {
-    //     crate::with_input(2024, 25, do_solve).unwrap();
-    // }
+    #[test]
+    fn test_real_input() {
+        crate::with_input(2024, 25, do_solve).unwrap();
+    }
 }

@@ -45,10 +45,25 @@ impl Timing {
     where
         W: FnOnce() -> R,
     {
+        let (r, d) = Self::with_duration(work);
+        println!("{label} ({d:?})");
+        r
+    }
+
+    pub fn with_duration<W, R>(work: W) -> (R, Duration)
+    where
+        W: FnOnce() -> R,
+    {
         let t = Timing::default();
         let r = t.apply(work);
-        println!("{label} ({:?})", t.total_time());
-        r
+        (r, t.total_time())
+    }
+
+    pub fn duration<W, R>(work: W) -> Duration
+    where
+        W: FnOnce() -> R,
+    {
+        Self::with_duration(work).1
     }
 }
 

@@ -1,6 +1,5 @@
 use crate::geom2d::Dir;
 use crate::Part;
-use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
@@ -45,10 +44,10 @@ impl Pt {
 struct Model {
     /// where the guard started
     guard: Pt,
-    /// which way the guard was facing (always North)
-    heading: Dir,
     /// max x,y values of the area. Min are 0,0
     bounds: Pt,
+    /// bounds.x + 1
+    width: usize,
     /// y-coordinates of obstructions, keyed by their x-coord. Vec means O(n),
     /// but n is small enough that HashSet's O(1) dominates.
     obs_by_x: Vec<Vec<usize>>,
@@ -60,7 +59,6 @@ impl Display for Model {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let Model {
             guard,
-            heading,
             obs_by_x,
             bounds,
             ..
@@ -71,7 +69,7 @@ impl Display for Model {
             }
             for x in 0..bounds.x {
                 if guard.x == x && guard.y == y {
-                    write!(f, "{heading}")?;
+                    write!(f, "{}", Dir::North)?;
                 } else {
                     if let Some(ys) = obs_by_x.get(x) {
                         if ys.contains(&y) {
@@ -92,7 +90,6 @@ impl FromStr for Model {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut guard = None;
-        let mut heading = None;
         let mut obs_by_x: Vec<Vec<_>> = Vec::new();
         // let mut obs_by_y: HashMap<_, Vec<_>> = HashMap::new();
         let mut max_y = 0;
@@ -114,7 +111,6 @@ impl FromStr for Model {
                             return Err("Found second guard?!");
                         } else {
                             guard = Some(Pt { x, y });
-                            heading = Some(Dir::from(c))
                         }
                     }
                     '#' => {
@@ -130,10 +126,11 @@ impl FromStr for Model {
             max_y = y;
         }
         if let Some(guard) = guard {
+            let max_x = max_x.unwrap();
             Ok(Model {
                 guard,
-                heading: heading.unwrap(),
-                bounds: Pt::new(max_x.unwrap(), max_y),
+                bounds: Pt::new(max_x, max_y),
+                width: max_x + 1,
                 obs_by_x,
                 extra_obs: None,
             })
@@ -172,14 +169,23 @@ impl Model {
             self.extra_obs = None;
         }
     }
+
+    fn tile_count(&self) -> usize {
+        self.width * (self.bounds.y + 1)
+    }
+
+    fn to_i(&self, p: &Pt) -> usize {
+        p.x + p.y * self.width
+    }
 }
 
 /// If the guard exits, return `Ok` with the set of coordinates she visited. If
 /// she entered a cycle, return `Err` with the cycle's entrance coordinates.
-fn do_walk(model: &Model) -> Result<HashSet<(Pt, Dir)>, (Pt, Dir)> {
+fn do_walk(model: &Model) -> Result<usize, (Pt, Dir)> {
     let mut pos = model.guard;
-    let mut h = model.heading;
-    let mut visited = HashSet::from([(pos, h)]);
+    let mut h = Dir::North;
+    let mut visited = vec![0_u8; model.tile_count()];
+    visited[model.to_i(&model.guard)] = 1;
     loop {
         let next = pos.step(h);
         if model.is_obstacle(next) {
@@ -187,41 +193,48 @@ fn do_walk(model: &Model) -> Result<HashSet<(Pt, Dir)>, (Pt, Dir)> {
             continue;
         }
         pos = next;
-        if !visited.insert((pos, h)) {
+        let i = model.to_i(&pos);
+        let mask = match h {
+            Dir::North => 1,
+            Dir::East => 2,
+            Dir::South => 4,
+            Dir::West => 8,
+        };
+        if visited[i] & mask == 0 {
+            visited[i] |= mask;
+        } else {
+            // already been here
             return Err((pos, h));
         }
         if model.at_edge(pos) {
             break;
         }
     }
-    Ok(visited)
+    Ok(visited.iter().filter(|v| **v != 0).count())
 }
 
 fn part_one(model: &Model) -> Result<usize, (Pt, Dir)> {
     match do_walk(model) {
-        Ok(visited) => {
-            let visited: HashSet<_> = visited.iter().map(|(p, _)| *p).collect();
-            // println!("Left area at {pos}, headed {h:?}");
-            Ok(visited.len())
-        }
+        Ok(visited) => Ok(visited),
         Err(coords) => Err(coords),
     }
 }
 
 fn part_two(model: &mut Model) -> usize {
     let mut pos = model.guard;
-    let mut h = model.heading;
-    let mut positions = HashSet::<Pt>::new();
+    let mut h = Dir::North;
+    let mut positions = vec![false; model.tile_count()];
     loop {
         let next = pos.step(h);
         if model.is_obstacle(next) {
             h = h.turn_right();
             continue;
         }
-        if !positions.contains(&next) {
+        let i = model.to_i(&next);
+        if !positions[i] {
             model.add_obstruction(next);
             if let Err(_) = do_walk(&model) {
-                positions.insert(next);
+                positions[i] = true;
             }
             model.clear_obstruction();
         }
@@ -230,8 +243,8 @@ fn part_two(model: &mut Model) -> usize {
             break;
         }
     }
-    positions.remove(&model.guard);
-    positions.len()
+    positions[model.to_i(&model.guard)] = false;
+    positions.iter().filter(|v| **v).count()
 }
 
 #[cfg(test)]

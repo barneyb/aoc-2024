@@ -80,7 +80,7 @@ where
         let mut f = BufWriter::new(f);
         emit_content(&mut f).expect("Unable to write data");
     });
-    let exit_code = Timing::ad_hoc(&format!("Rendered '{filename_gv}' to {FORMAT}"), || {
+    let exit_code = Timing::ad_hoc(&format!("Rendered '{filename_render}'"), || {
         Command::new(PLUGIN)
             .arg("-T")
             .arg(FORMAT)

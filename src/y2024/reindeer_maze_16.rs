@@ -3,6 +3,7 @@ use crate::geom2d::Dir::*;
 use crate::Part;
 use petgraph::prelude::{EdgeRef, NodeIndex};
 use petgraph::Graph;
+use std::collections::hash_map::Entry::Occupied;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Deref;
 use std::rc::Rc;
@@ -40,22 +41,19 @@ impl From<&str> for Maze {
                 let nx = map.add_node(());
                 lookup.insert(x + row_offset, nx);
                 if c == 'S' {
-                    if let Some(sx) = start {
+                    if let Some(sx) = start.replace(nx) {
                         panic!(
                             "Found second start at ({x}, {y})?! First at {:?}",
                             map.node_weight(sx)
                         )
                     }
-                    start = Some(nx);
-                }
-                if c == 'E' {
-                    if let Some(gx) = goal {
+                } else if c == 'E' {
+                    if let Some(gx) = goal.replace(nx) {
                         panic!(
                             "Found second goal at ({x}, {y})?! First at {:?}",
                             map.node_weight(gx)
                         )
                     }
-                    goal = Some(nx);
                 }
                 if let Some(&ox) = lookup.get(&(x - 1 + row_offset)) {
                     map.add_edge(nx, ox, (West, 1));
@@ -111,26 +109,28 @@ fn both_parts(maze: &Maze) -> (u32, u32) {
             good_seats.push(path.clone());
             continue;
         }
-        if let Some(&c) = visited.get(&(nx, h)) {
-            // already been here, facing this way
-            if cost > c {
-                // and it was lower cost
+        let entry = visited.entry((nx, h));
+        if let Occupied(mut v) = entry {
+            if cost > *v.get() {
                 continue;
             }
+            v.insert(cost);
+        } else {
+            entry.or_insert(cost);
         }
-        visited.insert((nx, h), cost);
+        let around = h.turn_around();
         for ex in maze.map.edges(nx) {
             let &(d, mut c) = ex.weight();
-            if d == h.turn_around() {
+            if d == around {
                 continue;
             }
+            c += cost;
             if d != h {
                 c += 1000;
             }
-            let ox = ex.target();
-            let next_cost = cost + c;
-            if next_cost <= best {
-                queue.push_back((ox, d, next_cost, Rc::new(Cons::push(ox, path.clone()))))
+            if c <= best {
+                let ox = ex.target();
+                queue.push_back((ox, d, c, Rc::new(Cons::push(ox, path.clone()))))
             }
         }
     }
@@ -158,6 +158,9 @@ fn count_distinct<T>(mut on_path: Vec<T>) -> u32
 where
     T: Copy + Eq + Ord,
 {
+    if on_path.is_empty() {
+        return 0;
+    }
     on_path.sort();
     let mut prev = on_path[0];
     let mut count = 1;

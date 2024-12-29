@@ -21,30 +21,7 @@ fn parse(input: &str) -> Stones {
 }
 
 fn part_one(stones: &Stones) -> usize {
-    let mut stones = blink(stones);
-    for _ in 2..=25 {
-        stones = blink(&stones);
-    }
-    stones.len()
-}
-
-fn blink(stones: &Stones) -> Stones {
-    let mut next = Vec::with_capacity(stones.len() * 3 / 2);
-    for &s in stones {
-        if s == 0 {
-            next.push(1);
-        } else {
-            let len = s.to_string().len();
-            if len % 2 == 0 {
-                let splitter = 10_usize.pow(len as u32 / 2);
-                next.push(s / splitter);
-                next.push(s % splitter);
-            } else {
-                next.push(s * 2024);
-            }
-        }
-    }
-    next
+    part_n(stones, 25)
 }
 
 fn part_n(stones: &Stones, n: u32) -> usize {
@@ -84,10 +61,36 @@ mod test {
 
     const EXAMPLE_1: &str = r#"125 17"#;
 
+    fn blink(stones: &Stones) -> Stones {
+        let mut next = Vec::with_capacity(stones.len() * 3 / 2);
+        for &s in stones {
+            if s == 0 {
+                next.push(1);
+            } else {
+                let len = s.to_string().len();
+                if len % 2 == 0 {
+                    let splitter = 10_usize.pow(len as u32 / 2);
+                    next.push(s / splitter);
+                    next.push(s % splitter);
+                } else {
+                    next.push(s * 2024);
+                }
+            }
+        }
+        next
+    }
+
     #[test]
     fn example_1() {
         let stones = parse(EXAMPLE_1);
+        // the computational way
         assert_eq!(r"55312", part_one(&stones).to_string());
+        // the iterative way
+        let mut stones = blink(&stones);
+        for _ in 2..=25 {
+            stones = blink(&stones);
+        }
+        assert_eq!(55312, stones.len());
     }
 
     #[test]

@@ -1,6 +1,5 @@
 use crate::hist::Histogram;
 use crate::Part;
-use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
@@ -13,22 +12,44 @@ type Pt = (usize, usize);
 
 #[derive(Debug, Eq, PartialEq)]
 struct Racetrack {
-    start: Pt,
-    finish: Pt,
-    distance_from_start: HashMap<Pt, usize>,
+    start: usize,
+    finish: usize,
+    distance_from_start: Vec<usize>,
+    width: usize,
 }
 
 impl Racetrack {
+    fn to_point(&self, i: usize) -> Pt {
+        (i % self.width, i / self.width)
+    }
+
+    fn to_index(&self, p: Pt) -> usize {
+        p.0 + p.1 * self.width
+    }
+
     /// I build a histogram, where the bins are the savings a cheat provides.
     fn cheat_value_histogram(&self, cheat_len: usize) -> Histogram<usize> {
         let mut hist = Histogram::new();
-        for (&(x, y), &dist) in &self.distance_from_start {
+        for (i, dist) in self
+            .distance_from_start
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| **d > 0)
+        {
+            let (x, y) = self.to_point(i);
+            // for (&(x, y), &dist) in &self.distance_from_start {
             let mut add_shortcut = |b, len| {
-                if let Some(d) = self.distance_from_start.get(&b) {
-                    let savings = dist.abs_diff(*d);
-                    if savings > len {
-                        hist.increment(savings - len)
-                    }
+                let i = self.to_index(b);
+                if i >= self.distance_from_start.len() {
+                    return;
+                }
+                let d = self.distance_from_start[i];
+                if d == 0 {
+                    return;
+                }
+                let savings = dist.abs_diff(d);
+                if savings > len {
+                    hist.increment(savings - len)
                 }
             };
             // NW bearings
@@ -51,45 +72,51 @@ impl Racetrack {
 }
 
 fn parse(input: &str) -> Racetrack {
-    let mut track = HashSet::new();
     let mut start = None;
     let mut finish = None;
     let grid: Vec<Vec<_>> = input.lines().map(|l| l.chars().collect()).collect();
+    let width = grid[0].len();
+    let mut track: Vec<bool> = vec![false; width * grid.len()];
     for (y, line) in grid.iter().enumerate() {
-        for (x, &c) in line.iter().enumerate() {
-            if c == '#' {
+        let row_offset = y * width;
+        for (x, c) in line.iter().enumerate() {
+            if *c == '#' {
                 continue;
-            } else if c == 'S' {
-                start = Some((x, y))
-            } else if c == 'E' {
-                finish = Some((x, y))
             }
-            track.insert((x, y));
+            let i = row_offset + x;
+            if *c == 'S' {
+                start = Some(i)
+            } else if *c == 'E' {
+                finish = Some(i)
+            }
+            track[i] = true;
         }
     }
     let start = start.unwrap();
     Racetrack {
-        distance_from_start: distances_from(&track, start),
+        distance_from_start: distances_from(&track, width, start),
         start,
         finish: finish.unwrap(),
+        width,
     }
 }
 
-fn distances_from(track: &HashSet<Pt>, start: Pt) -> HashMap<Pt, usize> {
-    let mut queue = VecDeque::new();
-    queue.push_back((start, 0_usize));
-    let mut distances = HashMap::new();
-    while let Some((p, steps)) = queue.pop_front() {
-        if *distances.entry(p).or_insert(steps) < steps {
-            continue;
-        }
-        let ns = steps + 1;
-        let (x, y) = p;
-        for n in [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)] {
-            if track.contains(&n) {
-                queue.push_back((n, ns));
+fn distances_from(track: &Vec<bool>, width: usize, start: usize) -> Vec<usize> {
+    let mut distances = vec![0; track.len()];
+    let mut curr = start;
+    let mut prev = start + 3; // can't be in the first two neighbors
+    let mut dist = 0;
+    'step: loop {
+        dist += 1;
+        distances[curr] = dist;
+        for next in [curr - width, curr + 1, curr + width, curr - 1] {
+            if next != prev && track[next] {
+                prev = curr;
+                curr = next;
+                continue 'step;
             }
         }
+        break;
     }
     distances
 }
@@ -114,7 +141,6 @@ fn part_two(track: &Racetrack) -> usize {
 mod test {
     use super::*;
     use crate::hist::IntoHistogram;
-    use lazy_static::lazy_static;
 
     const EXAMPLE_0: &str = r"#####
 #...#
@@ -124,33 +150,6 @@ mod test {
 #.#.#
 #...#
 #####";
-
-    lazy_static! {
-        static ref RACETRACK_0: Racetrack = Racetrack {
-            start: (1, 2),
-            finish: (1, 4),
-            distance_from_start: HashMap::from([
-                ((1, 2), 0),
-                ((1, 1), 1),
-                ((2, 1), 2),
-                ((3, 1), 3),
-                ((3, 2), 4),
-                ((3, 3), 5),
-                ((3, 4), 6),
-                ((3, 5), 7),
-                ((3, 6), 8),
-                ((2, 6), 9),
-                ((1, 6), 10),
-                ((1, 5), 11),
-                ((1, 4), 12)
-            ]),
-        };
-    }
-
-    #[test]
-    fn parse_0() {
-        assert_eq!(*RACETRACK_0, parse(EXAMPLE_0));
-    }
 
     #[test]
     fn value_histogram_0() {

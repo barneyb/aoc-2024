@@ -1,6 +1,4 @@
-use crate::hist::Histogram;
 use crate::Part;
-use std::collections::{HashSet, VecDeque};
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
@@ -9,49 +7,50 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
 }
 
 #[rustfmt::skip]
-fn prng(secret: usize) -> usize {
-    let secret: usize = secret ^ (secret <<  6) & 0xffffff;
-    let secret: usize = secret ^ (secret >>  5) & 0xffffff;
-                        secret ^ (secret << 11) & 0xffffff
+fn prng(secret: u32) -> u32 {
+    let secret: u32 = secret ^ (secret <<  6) & 0xffffff;
+    let secret: u32 = secret ^ (secret >>  5) & 0xffffff;
+                      secret ^ (secret << 11) & 0xffffff
 }
 
 fn part_one(input: &str) -> usize {
     input
         .lines()
-        .map(|l| l.parse::<usize>().unwrap())
+        .map(|l| l.parse::<u32>().unwrap())
         .map(|s| {
             let mut n = s;
             for _ in 0..2000 {
                 n = prng(n)
             }
-            n
+            n as usize
         })
         .sum()
 }
 
-fn part_two(input: &str) -> usize {
-    let mut hist = Histogram::new();
-    for mut s in input.lines().map(|l| l.parse::<usize>().unwrap()) {
-        let mut visited = HashSet::new();
-        let mut window = VecDeque::new();
-        for _ in 0..2000 {
-            let n = prng(s);
-            if window.len() == 4 {
-                window.pop_front();
-            }
+fn part_two(input: &str) -> u32 {
+    const NINETEEN: u32 = 19;
+    const NINETEEN_TO_FOURTH: u32 = NINETEEN * NINETEEN * NINETEEN * NINETEEN;
+    let mut hist: Vec<u32> = vec![0; NINETEEN_TO_FOURTH as usize];
+    let mut visited = vec![false; NINETEEN_TO_FOURTH as usize];
+    for mut prev in input.lines().map(|l| l.parse::<u32>().unwrap()) {
+        visited.fill(false);
+        let mut key = 0;
+        for i in 0..2000 {
+            let n = prng(prev);
             let price = n % 10;
-            window.push_back(price as i8 - (s % 10) as i8);
-            s = n;
-            if window.len() == 4 {
-                let key: Vec<_> = window.iter().cloned().collect();
-                if !visited.contains(&key) {
-                    visited.insert(key.clone());
-                    hist.add(key, price);
+            key *= NINETEEN;
+            key += price + 9 - (prev % 10);
+            key %= NINETEEN_TO_FOURTH;
+            prev = n;
+            if i >= 3 {
+                if !visited[key as usize] {
+                    visited[key as usize] = true;
+                    hist[key as usize] += price;
                 }
             }
         }
     }
-    *hist.values().max().unwrap()
+    *hist.iter().max().unwrap()
 }
 
 #[cfg(test)]

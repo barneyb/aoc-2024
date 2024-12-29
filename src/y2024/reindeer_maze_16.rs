@@ -3,7 +3,9 @@ use crate::geom2d::Dir::*;
 use crate::Part;
 use petgraph::prelude::{EdgeRef, NodeIndex};
 use petgraph::Graph;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
+use std::ops::Deref;
+use std::rc::Rc;
 use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
@@ -84,15 +86,30 @@ impl From<&str> for Maze {
     }
 }
 
+enum Cons<T> {
+    Nil,
+    Cons(T, Rc<Cons<T>>),
+}
+
+impl<T> Cons<T> {
+    fn of(t: T) -> Self {
+        Cons::Cons(t, Rc::new(Cons::Nil))
+    }
+
+    fn push(prev: Rc<Cons<T>>, t: T) -> Self {
+        Cons::Cons(t, prev.clone())
+    }
+}
+
 type Coords = (NodeIndex, Dir);
-type State = (NodeIndex, Dir, usize, Vec<NodeIndex>);
+type State = (NodeIndex, Dir, usize, Rc<Cons<NodeIndex>>);
 
 fn both_parts(maze: &Maze) -> (usize, usize) {
     let mut queue: VecDeque<State> = VecDeque::new();
-    queue.push_back((maze.start, East, 0, vec![maze.start]));
+    queue.push_back((maze.start, East, 0, Rc::new(Cons::of(maze.start))));
     let mut visited: HashMap<Coords, usize> = HashMap::new();
     let mut best = usize::MAX;
-    let mut good_seats = HashSet::new();
+    let mut good_seats = Vec::new();
     while let Some((nx, h, cost, path)) = queue.pop_front() {
         if let Some(&c) = visited.get(&(nx, h)) {
             // already been here, facing this way
@@ -106,9 +123,9 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
             if cost < best {
                 best = cost;
                 good_seats.clear();
-                good_seats.extend(path);
+                good_seats.push(path.clone());
             } else if cost == best {
-                good_seats.extend(path);
+                good_seats.push(path.clone());
             }
             continue;
         }
@@ -120,13 +137,33 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
             if d != h {
                 c += 1000;
             }
-            let mut new_path = path.clone();
             let ox = ex.target();
-            new_path.push(ox);
-            queue.push_back((ox, d, cost + c, new_path))
+            queue.push_back((ox, d, cost + c, Rc::new(Cons::push(path.clone(), ox))))
         }
     }
-    (best, good_seats.len())
+    let mut on_path = Vec::new();
+    fn visit(l: Rc<Cons<NodeIndex>>, on_path: &mut Vec<NodeIndex>) {
+        match l.deref() {
+            Cons::Nil => {}
+            Cons::Cons(nx, l) => {
+                on_path.push(*nx);
+                visit(l.clone(), on_path)
+            }
+        };
+    }
+    for seat in good_seats {
+        visit(seat, &mut on_path)
+    }
+    on_path.sort();
+    let mut prev = on_path[0];
+    let mut count = 1;
+    for curr in on_path {
+        if curr != prev {
+            count += 1
+        }
+        prev = curr;
+    }
+    (best, count)
 }
 
 #[cfg(test)]

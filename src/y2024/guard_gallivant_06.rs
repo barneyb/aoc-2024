@@ -51,6 +51,7 @@ struct Model {
     /// y-coordinates of obstructions, keyed by their x-coord. Vec means O(n),
     /// but n is small enough that HashSet's O(1) dominates.
     obs_by_x: Vec<Vec<usize>>,
+    // obs_by_y: Vec<Vec<usize>>,
     /// a single extra obstruction, in addition to the above.
     extra_obs: Option<Pt>,
 }
@@ -91,6 +92,7 @@ impl FromStr for Model {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut guard = None;
         let mut obs_by_x: Vec<Vec<_>> = Vec::new();
+        // let mut obs_by_y: Vec<Vec<_>> = Vec::new();
         // let mut obs_by_y: HashMap<_, Vec<_>> = HashMap::new();
         let mut max_y = 0;
         let mut max_x = None;
@@ -99,8 +101,11 @@ impl FromStr for Model {
                 let l = line.len();
                 max_x = Some(l - 1);
                 obs_by_x.reserve(l);
+                // obs_by_y.reserve(l);
+                let capacity = l / 20;
                 for _ in 0..=l {
-                    obs_by_x.push(Vec::new());
+                    obs_by_x.push(Vec::with_capacity(capacity));
+                    // obs_by_y.push(Vec::with_capacity(capacity));
                 }
             }
             for (x, c) in line.chars().enumerate() {
@@ -115,6 +120,7 @@ impl FromStr for Model {
                     }
                     '#' => {
                         obs_by_x[x].push(y);
+                        // obs_by_y[y].push(x);
                     }
                     '.' => {}
                     _ => {
@@ -132,6 +138,7 @@ impl FromStr for Model {
                 bounds: Pt::new(max_x, max_y),
                 width: max_x + 1,
                 obs_by_x,
+                // obs_by_y,
                 extra_obs: None,
             })
         } else {
@@ -147,7 +154,7 @@ impl Model {
                 return true;
             }
         }
-        self.obs_by_x[p.x].contains(&p.y)
+        self.obs_by_x[p.x].binary_search(&p.y).is_ok()
     }
 
     fn at_edge(&self, p: Pt) -> bool {

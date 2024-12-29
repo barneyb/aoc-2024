@@ -1,16 +1,28 @@
 use aoc::aocd::get_input;
 use aoc::timing::Timing;
 use aoc::y2024::*;
+use std::io::{stdout, Write};
 use std::sync::mpsc::channel;
 use std::time::Duration;
 
 fn main() {
-    let raw_inputs: Vec<_> = (1..=25).map(|d| get_input(2024, d).unwrap()).collect();
+    let raw_inputs: Vec<_> = {
+        let mut lock = stdout().lock();
+        write!(lock, "Reading inputs").unwrap();
+        (1..=25)
+            .map(|d| {
+                write!(lock, "{d:.>4}").unwrap();
+                lock.flush().unwrap();
+                get_input(2024, d).unwrap()
+            })
+            .collect()
+    };
     let inputs: Vec<_> = raw_inputs
         .iter()
         .map(|i| i.trim_end_matches('\n'))
         .collect();
-    let (tx, _rx) = channel(); // just a dumb sink
+    println!("...done!");
+    let (tx, _rx) = channel(); // just a dumb sink, but need to bind the receiver
     let results = vec![
         (
             "historian_hysteria",

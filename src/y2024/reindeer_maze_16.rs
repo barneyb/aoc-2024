@@ -15,12 +15,8 @@ pub fn do_solve(input: &str, tx: Sender<Part>) {
     tx.send(Part::Both(a.to_string(), b.to_string())).unwrap();
 }
 
-type Pt = (usize, usize);
-
 struct Maze {
-    map: Graph<Pt, (Dir, usize)>,
-    #[allow(dead_code)]
-    lookup: HashMap<Pt, NodeIndex>,
+    map: Graph<(), (Dir, u32)>,
     start: NodeIndex,
     goal: NodeIndex,
 }
@@ -30,19 +26,19 @@ impl From<&str> for Maze {
         let mut map = Graph::new();
         let mut start = None;
         let mut goal = None;
-        let mut prev: Option<Vec<_>> = None;
         let mut lookup = HashMap::new();
+        let mut width = 0;
         for (y, line) in input.lines().enumerate() {
-            let mut p = None;
-            let chars: Vec<_> = line.chars().collect();
-            for (x, &c) in chars.iter().enumerate() {
+            if width == 0 {
+                width = line.chars().count();
+            }
+            let row_offset = y * width;
+            for (x, c) in line.chars().enumerate() {
                 if c == '#' {
-                    p = None;
                     continue;
                 }
-                let pt = (x, y);
-                let nx = map.add_node(pt);
-                lookup.insert(pt, nx);
+                let nx = map.add_node(());
+                lookup.insert(x + row_offset, nx);
                 if c == 'S' {
                     if let Some(sx) = start {
                         panic!(
@@ -61,25 +57,18 @@ impl From<&str> for Maze {
                     }
                     goal = Some(nx);
                 }
-                if let Some(_) = p {
-                    let ox = lookup[&(x - 1, y)];
+                if let Some(&ox) = lookup.get(&(x - 1 + row_offset)) {
                     map.add_edge(nx, ox, (West, 1));
                     map.add_edge(ox, nx, (East, 1));
                 }
-                if let Some(cs) = &prev {
-                    if cs[x] != '#' {
-                        let ox = lookup[&(x, y - 1)];
-                        map.add_edge(nx, ox, (North, 1));
-                        map.add_edge(ox, nx, (South, 1));
-                    }
+                if let Some(&ox) = lookup.get(&(x + row_offset - width)) {
+                    map.add_edge(nx, ox, (North, 1));
+                    map.add_edge(ox, nx, (South, 1));
                 }
-                p = Some('.');
             }
-            prev = Some(chars);
         }
         Maze {
             map,
-            lookup,
             start: start.unwrap(),
             goal: goal.unwrap(),
         }
@@ -96,21 +85,32 @@ impl<T> Cons<T> {
         Cons::Cons(t, Rc::new(Cons::Nil))
     }
 
-    fn push(prev: Rc<Cons<T>>, t: T) -> Self {
-        Cons::Cons(t, prev.clone())
+    fn push(head: T, tail: Rc<Cons<T>>) -> Self {
+        Cons::Cons(head, tail.clone())
     }
 }
 
 type Coords = (NodeIndex, Dir);
-type State = (NodeIndex, Dir, usize, Rc<Cons<NodeIndex>>);
+type State = (NodeIndex, Dir, u32, Rc<Cons<NodeIndex>>);
 
-fn both_parts(maze: &Maze) -> (usize, usize) {
+fn both_parts(maze: &Maze) -> (u32, u32) {
     let mut queue: VecDeque<State> = VecDeque::new();
     queue.push_back((maze.start, East, 0, Rc::new(Cons::of(maze.start))));
-    let mut visited: HashMap<Coords, usize> = HashMap::new();
-    let mut best = usize::MAX;
+    let mut visited: HashMap<Coords, u32> = HashMap::new();
+    let mut best = u32::MAX;
     let mut good_seats = Vec::new();
     while let Some((nx, h, cost, path)) = queue.pop_front() {
+        if cost > best {
+            continue;
+        }
+        if nx == maze.goal {
+            if cost < best {
+                best = cost;
+                good_seats.clear();
+            }
+            good_seats.push(path.clone());
+            continue;
+        }
         if let Some(&c) = visited.get(&(nx, h)) {
             // already been here, facing this way
             if cost > c {
@@ -119,16 +119,6 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
             }
         }
         visited.insert((nx, h), cost);
-        if nx == maze.goal {
-            if cost < best {
-                best = cost;
-                good_seats.clear();
-                good_seats.push(path.clone());
-            } else if cost == best {
-                good_seats.push(path.clone());
-            }
-            continue;
-        }
         for ex in maze.map.edges(nx) {
             let &(d, mut c) = ex.weight();
             if d == h.turn_around() {
@@ -138,22 +128,36 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
                 c += 1000;
             }
             let ox = ex.target();
-            queue.push_back((ox, d, cost + c, Rc::new(Cons::push(path.clone(), ox))))
+            let next_cost = cost + c;
+            if next_cost <= best {
+                queue.push_back((ox, d, next_cost, Rc::new(Cons::push(ox, path.clone()))))
+            }
         }
     }
+    let on_path = flatten(good_seats);
+    (best, count_distinct(on_path))
+}
+
+fn flatten(good_seats: Vec<Rc<Cons<NodeIndex>>>) -> Vec<NodeIndex> {
     let mut on_path = Vec::new();
-    fn visit(l: Rc<Cons<NodeIndex>>, on_path: &mut Vec<NodeIndex>) {
-        match l.deref() {
-            Cons::Nil => {}
-            Cons::Cons(nx, l) => {
-                on_path.push(*nx);
-                visit(l.clone(), on_path)
+    for mut seat in good_seats {
+        loop {
+            match seat.deref() {
+                Cons::Nil => break,
+                Cons::Cons(nx, l) => {
+                    on_path.push(*nx);
+                    seat = l.to_owned();
+                }
             }
-        };
+        }
     }
-    for seat in good_seats {
-        visit(seat, &mut on_path)
-    }
+    on_path
+}
+
+fn count_distinct<T>(mut on_path: Vec<T>) -> u32
+where
+    T: Copy + Eq + Ord,
+{
     on_path.sort();
     let mut prev = on_path[0];
     let mut count = 1;
@@ -163,7 +167,7 @@ fn both_parts(maze: &Maze) -> (usize, usize) {
         }
         prev = curr;
     }
-    (best, count)
+    count
 }
 
 #[cfg(test)]

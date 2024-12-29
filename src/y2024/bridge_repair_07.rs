@@ -5,6 +5,7 @@ use std::sync::mpsc::Sender;
 
 pub fn do_solve(input: &str, tx: Sender<Part>) {
     let equations: Vec<_> = parse(input);
+    tx.send(Part::Parse()).unwrap();
     tx.send(Part::A(part_one(&equations).to_string())).unwrap();
     tx.send(Part::B(part_two(&equations).to_string())).unwrap();
 }
@@ -40,26 +41,32 @@ impl FromStr for Equation {
 }
 
 impl Equation {
-    #[allow(dead_code)] // for tests
-    fn new(answer: usize, terms: Vec<usize>) -> Equation {
-        Equation { answer, terms }
-    }
-
     fn is_valid<Op>(&self, operators: &[Op]) -> bool
     where
         Op: Fn(usize, usize) -> usize,
     {
         let mut curr = Vec::from([self.terms[0]]);
+        let mut remaining = self.terms.len() - 1;
         for &right in &self.terms[1..] {
+            remaining -= 1;
             let mut next = Vec::with_capacity(curr.len() * 2);
             for left in curr {
                 for op in operators {
-                    next.push(op(left, right));
+                    let v = op(left, right);
+                    if v > self.answer {
+                        continue;
+                    }
+                    // If the last term is a one, we'll hit the answer "too
+                    // early", since multiplying by one will make it valid.
+                    if remaining == 0 && v == self.answer {
+                        return true;
+                    }
+                    next.push(v);
                 }
             }
             curr = next;
         }
-        curr.iter().any(|n| *n == self.answer)
+        false
     }
 }
 
@@ -71,7 +78,8 @@ where
 }
 
 fn part_one(equations: &Vec<Equation>) -> usize {
-    either_part(equations, |e| e.is_valid(&vec![usize::add, usize::mul]))
+    let ops = vec![usize::add, usize::mul];
+    either_part(equations, |e| e.is_valid(&ops))
 }
 
 fn concat(a: usize, b: usize) -> usize {
@@ -86,9 +94,8 @@ fn concat(a: usize, b: usize) -> usize {
 }
 
 fn part_two(equations: &Vec<Equation>) -> usize {
-    either_part(equations, |e| {
-        e.is_valid(&vec![usize::add, usize::mul, concat])
-    })
+    let ops = vec![usize::add, usize::mul, concat];
+    either_part(equations, |e| e.is_valid(&ops))
 }
 
 #[cfg(test)]
@@ -104,6 +111,12 @@ mod test {
 192: 17 8 14
 21037: 9 7 18 13
 292: 11 6 16 20"#;
+
+    impl Equation {
+        fn new(answer: usize, terms: Vec<usize>) -> Equation {
+            Equation { answer, terms }
+        }
+    }
 
     #[test]
     fn test_is_valid() {

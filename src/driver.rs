@@ -18,7 +18,7 @@ pub enum Part {
     Join(),
 }
 
-/// Invokes the passed `work`, passing it the given year/day/s input as a
+/// Invokes the passed `work`, passing it the given year/day's input as a
 /// `String`, and a `Sender` which accepts [Part]-wrapped answers to be printed
 /// and verified.
 pub fn with_input<S>(year: u32, day: u8, work: S) -> Result<(), Error>
@@ -26,6 +26,9 @@ where
     S: FnOnce(&str, Sender<Part>) -> (),
     S: Send + 'static,
 {
+    let external_run = env::var("BEB_EXTERNAL_RUN")
+        .map(|v| v != "0")
+        .unwrap_or(false);
     let solve_nanos = env::var("BEB_SOLVE_NANOS")
         .map(|v| v != "0")
         .unwrap_or(false);
@@ -35,7 +38,25 @@ where
         let mut correct = true;
         loop {
             match print_rx.recv() {
-                Ok((p, dur)) => correct &= print.print(year, day, &p, dur),
+                Ok((p, dur)) => {
+                    if external_run {
+                        match p {
+                            Part::A(a) => {
+                                println!("[__AOCD_VERIFY_A__[{}]]", a);
+                            }
+                            Part::B(b) => {
+                                println!("[__AOCD_VERIFY_B__[{}]]", b);
+                            }
+                            Part::Both(a, b) => {
+                                println!("[__AOCD_VERIFY_A__[{}]]", a);
+                                println!("[__AOCD_VERIFY_B__[{}]]", b);
+                            }
+                            _ => {}
+                        }
+                    } else {
+                        correct &= print.print(year, day, &p, dur)
+                    }
+                }
                 Err(RecvError) => break,
             }
         }
@@ -63,6 +84,8 @@ where
     let solve_elapsed = solve_nanos_start.elapsed();
     if solve_nanos {
         println!("¡¡solve nanos {}!!", solve_elapsed.as_nanos());
+    } else if external_run {
+        println!("[__AOCD_VERIFY_T__[{}]]", solve_elapsed.as_nanos());
     } else {
         print_tx.send((Part::Join(), solve_elapsed)).unwrap();
     }

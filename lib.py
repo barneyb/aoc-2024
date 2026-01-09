@@ -6,7 +6,8 @@ import subprocess
 from doctest import master
 from zoneinfo import ZoneInfo
 
-YD = (int, int)
+from util.lib import compute_done, YD
+
 Deps = dict[YD, set[YD]]
 
 AOC_TZ = ZoneInfo("America/New_York")
@@ -71,30 +72,6 @@ def colored(text, *colors):
     return f"{''.join(colors)}{text}{Colors.END}"
 
 
-def compute_done(*, include_working_copy: bool = False) -> set[YD]:
-    # always consider files committed to master
-    rust_files = subprocess.run(
-        ["git", "ls-tree", "master", "-r", "--name-only", "src"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    if include_working_copy:
-        # add whatever is currently checked out
-        rust_files += subprocess.run(
-            ["find", "src", "-name", "*_*.rs"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
-    pat = re.compile(r".*/y(\d{4})/.*_(\d{2})\.rs")
-    return {
-        (int(m.group(1)), int(m.group(2)))
-        for m in [re.fullmatch(pat, file) for file in rust_files.strip().splitlines()]
-        if m
-    }
-
-
 def compute_in_progress(done: set[YD] = None) -> set[YD]:
     if done is None:
         done = compute_done()
@@ -145,16 +122,6 @@ def load_deps() -> Deps:
         check=True,
     ).stdout.strip()
     return dict([(tuple(d), {tuple(d) for d in ds}) for [d, ds] in json.loads(s) if ds])
-
-
-def puzzle_name(puzzle):
-    name = puzzle.title.lower()
-    name = re.sub("'([dst]|ll|re) ", "\\1 ", name)
-    name = re.sub("[^a-z0-9]+", "_", name)
-    name = name.strip("_")
-    if not name[0].isalpha():
-        name = "_" + name
-    return name
 
 
 def save_deps(deps: Deps):

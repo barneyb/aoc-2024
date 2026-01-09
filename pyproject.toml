@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages]
+find = { }
+
+[project]
+name = "barneyb-aoc-2024"
+description = "My Advent of Code 2024 solvers"
+authors = [
+    { name = "Barney Boisvert", email = "bboisvert@gmail.com" }
+]
+version = "2024.1"
+requires-python = ">= 3.11"
+dependencies = [
+    "advent-of-code-data",
+    "black",
+]
+
+[project.entry-points."barneyb_aoc_all.support"]
+rust24 = "util.aoc_all_2024:support"
+[project.entry-points."barneyb_aoc_all.solve"]
+rust24 = "util.aoc_all_2024:solve"
